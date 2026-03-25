@@ -26,8 +26,14 @@
       --border: rgba(0,0,0,0.1); --border-strong: rgba(0,0,0,0.2);
       --accent: #1a1a18; --done-bg: #e8f5e8; --done-text: #2e7d32;
     }
+    [data-theme="dark"] {
+      --bg: #111110; --surface: #1c1c1a; --surface-2: #252523;
+      --text-primary: #f0ede8; --text-secondary: #888780;
+      --border: rgba(255,255,255,0.1); --border-strong: rgba(255,255,255,0.2);
+      --accent: #f0ede8; --done-bg: #1a2e1a; --done-text: #81c784;
+    }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --bg: #111110; --surface: #1c1c1a; --surface-2: #252523;
         --text-primary: #f0ede8; --text-secondary: #888780;
         --border: rgba(255,255,255,0.1); --border-strong: rgba(255,255,255,0.2);
@@ -320,6 +326,19 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Sort by Last Modified
           </div>
+          <div class="hm-label" style="margin-top:6px; border-top: 0.5px solid var(--border); padding-top:10px;">Appearance</div>
+          <div class="hm-item" id="theme-system" onclick="setTheme('system')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            System Default
+          </div>
+          <div class="hm-item" id="theme-light" onclick="setTheme('light')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            Light
+          </div>
+          <div class="hm-item" id="theme-dark" onclick="setTheme('dark')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Dark
+          </div>
         </div>
       </div>
     </div>
@@ -489,7 +508,30 @@
     ['name','created','modified'].forEach(s => {
       document.getElementById('sort-' + s).classList.toggle('active-sort', currentSort === s);
     });
+    ['system','light','dark'].forEach(t => {
+      document.getElementById('theme-' + t).classList.toggle('active-sort', currentTheme === t);
+    });
   }
+
+  // --- Theme ---
+  let currentTheme = localStorage.getItem('gt-theme') || 'system';
+
+  function applyTheme(theme) {
+    const root = document.documentElement;
+    if (theme === 'dark') root.setAttribute('data-theme', 'dark');
+    else if (theme === 'light') root.setAttribute('data-theme', 'light');
+    else root.removeAttribute('data-theme');
+  }
+
+  function setTheme(theme) {
+    currentTheme = theme;
+    localStorage.setItem('gt-theme', theme);
+    applyTheme(theme);
+    updateSortUI();
+    document.getElementById('header-dots-menu').classList.remove('open');
+  }
+
+  applyTheme(currentTheme);
 
   function setSort(type) {
     currentSort = type;
