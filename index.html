@@ -57,13 +57,51 @@
       font-weight: 400; color: var(--text-primary);
     }
     .fab {
-      width: 44px; height: 44px; border-radius: 50%;
+      position: fixed; bottom: 28px;
+      left: calc(50% + min(215px, 50vw) - 52px - 16px);
+      width: 52px; height: 52px; border-radius: 50%;
       background: var(--accent); border: none;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; flex-shrink: 0; transition: opacity 0.15s;
+      z-index: 5; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
     }
     .fab:active { opacity: 0.7; }
     .fab svg { stroke: var(--surface); }
+    /* Header dots */
+    .header-dots-wrap { position: relative; }
+    .header-dots-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: none; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .header-dots-btn:active { background: var(--surface-2); }
+    .header-dots-menu {
+      position: absolute; top: 44px; right: 0;
+      background: var(--surface); border: 0.5px solid var(--border-strong);
+      border-radius: 14px; min-width: 200px; z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      overflow: hidden; display: none;
+    }
+    .header-dots-menu.open { display: block; }
+    .hm-label {
+      padding: 10px 16px 6px; font-size: 11px; font-weight: 500;
+      color: var(--text-secondary); letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .hm-item {
+      padding: 12px 16px; font-size: 15px; font-family: var(--ff-body);
+      color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 10px;
+      transition: background 0.1s;
+    }
+    .hm-item:active { background: var(--surface-2); }
+    .hm-item + .hm-item { border-top: 0.5px solid var(--border); }
+    .hm-item.active-sort { color: var(--accent); font-weight: 500; }
+    /* Drag styles */
+    .goal-card.dragging {
+      opacity: 0.4; transform: scale(0.97);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+    .goal-card.drag-over { border-color: var(--accent); }
     .goals-scroll {
       flex: 1; overflow-y: auto; padding: 0 16px 120px;
       display: flex; flex-direction: column; gap: 12px;
@@ -226,10 +264,13 @@
       background: var(--surface-2); color: var(--text-primary); font-family: var(--ff-body);
     }
     .log-form input:focus { outline: none; border-color: var(--accent); }
+    .log-input-row { display: flex; gap: 10px; align-items: stretch; }
+    .log-input-row input { flex: 1; margin: 0; }
     .log-add-btn {
-      width: 100%; padding: 15px; background: var(--accent); color: var(--surface);
-      border: none; border-radius: 14px; font-family: var(--ff-body);
+      padding: 13px 20px; background: var(--accent); color: var(--surface);
+      border: none; border-radius: 12px; font-family: var(--ff-body);
       font-size: 16px; font-weight: 500; cursor: pointer; transition: opacity 0.15s;
+      white-space: nowrap; flex-shrink: 0;
     }
     .log-add-btn:active { opacity: 0.75; }
     .log-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
@@ -264,14 +305,38 @@
   <div class="home-screen">
     <div class="home-header">
       <h1>My Goals</h1>
-      <button class="fab" onclick="openNewSheet()" aria-label="New goal">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </button>
+      <div class="header-dots-wrap">
+        <button class="header-dots-btn" onclick="toggleHeaderMenu(event)" id="header-dots-btn" aria-label="Options">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-primary)">
+            <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+          </svg>
+        </button>
+        <div class="header-dots-menu" id="header-dots-menu">
+          <div class="hm-label">Sort</div>
+          <div class="hm-item" id="sort-name" onclick="setSort('name')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Sort by Name
+          </div>
+          <div class="hm-item" id="sort-created" onclick="setSort('created')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Sort by Date Created
+          </div>
+          <div class="hm-item" id="sort-modified" onclick="setSort('modified')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Sort by Last Modified
+          </div>
+        </div>
+      </div>
     </div>
     <div class="goals-scroll" id="goals-scroll"></div>
   </div>
+
+  <!-- Bottom FAB -->
+  <button class="fab" onclick="openNewSheet()" aria-label="New goal">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  </button>
 
   <div class="sheet-bg" id="sheet-bg" onclick="closeBothSheets()"></div>
 
@@ -286,7 +351,7 @@
       </div>
       <div class="field">
         <label>Target</label>
-        <input type="number" id="ng-target" value="10000" min="1" inputmode="numeric">
+        <input type="number" id="ng-target" min="1" inputmode="numeric" placeholder="e.g. 10000">
       </div>
       <div class="field">
         <label>Unit</label>
@@ -348,8 +413,10 @@
       <div class="sec-label">Log a session</div>
       <div class="log-form">
         <input type="datetime-local" id="log-dt">
-        <input type="number" id="log-reps" min="1" placeholder="Amount" inputmode="numeric">
-        <button class="log-add-btn" onclick="addLog()">Add</button>
+        <div class="log-input-row">
+          <input type="number" id="log-reps" min="1" placeholder="Amount" inputmode="numeric">
+          <button class="log-add-btn" onclick="addLog()">Add</button>
+        </div>
       </div>
     </div>
   </div>
@@ -402,15 +469,137 @@
   let activeId = null;
   let selectedUnit = 'Reps';
   let selectedEditUnit = 'Reps';
+  let currentSort = localStorage.getItem('gt-sort') || 'manual';
 
   function save() { localStorage.setItem('gt-goals', JSON.stringify(goals)); }
+  function saveSort() { localStorage.setItem('gt-sort', currentSort); }
 
-  // Close dots menu when clicking outside
+  // --- Header dots menu ---
   document.addEventListener('click', function(e) {
-    const menu = document.getElementById('dots-menu');
-    const btn = document.getElementById('dots-btn');
+    const menu = document.getElementById('header-dots-menu');
+    const btn = document.getElementById('header-dots-btn');
     if (menu && !btn.contains(e.target)) menu.classList.remove('open');
+    const dmenu = document.getElementById('dots-menu');
+    const dbtn = document.getElementById('dots-btn');
+    if (dmenu && dbtn && !dbtn.contains(e.target)) dmenu.classList.remove('open');
   });
+
+  function toggleHeaderMenu(e) {
+    e.stopPropagation();
+    document.getElementById('header-dots-menu').classList.toggle('open');
+    updateSortUI();
+  }
+
+  function updateSortUI() {
+    ['name','created','modified'].forEach(s => {
+      document.getElementById('sort-' + s).classList.toggle('active-sort', currentSort === s);
+    });
+  }
+
+  function setSort(type) {
+    currentSort = type;
+    saveSort();
+    document.getElementById('header-dots-menu').classList.remove('open');
+    renderGoals();
+  }
+
+  function getSortedGoals() {
+    const arr = [...goals];
+    if (currentSort === 'name') arr.sort((a,b) => a.name.localeCompare(b.name));
+    else if (currentSort === 'created') arr.sort((a,b) => a.id - b.id);
+    else if (currentSort === 'modified') arr.sort((a,b) => {
+      const la = a.logs.length ? a.logs[a.logs.length-1].ts : a.id;
+      const lb = b.logs.length ? b.logs[b.logs.length-1].ts : b.id;
+      return lb - la;
+    });
+    return arr;
+  }
+
+  // --- Drag and drop ---
+  let dragSrcId = null;
+  let displayOrder = []; // tracks the current visual order of goal ids
+
+  function initDrag() {
+    const scroll = document.getElementById('goals-scroll');
+    const cards = scroll.querySelectorAll('.goal-card');
+    // Build display order from rendered cards
+    displayOrder = [...cards].map(c => parseInt(c.dataset.id));
+
+    cards.forEach(card => {
+      card.setAttribute('draggable', 'true');
+
+      card.addEventListener('dragstart', e => {
+        dragSrcId = parseInt(card.dataset.id);
+        setTimeout(() => card.classList.add('dragging'), 0);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        scroll.querySelectorAll('.goal-card').forEach(c => c.classList.remove('drag-over'));
+      });
+      card.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        scroll.querySelectorAll('.goal-card').forEach(c => c.classList.remove('drag-over'));
+        card.classList.add('drag-over');
+      });
+      card.addEventListener('drop', e => {
+        e.preventDefault();
+        const targetId = parseInt(card.dataset.id);
+        if (dragSrcId === targetId) return;
+        reorderGoals(dragSrcId, targetId);
+      });
+
+      // Touch drag support
+      let touchStartY = 0, touchClone = null, touchTargetId = null;
+      card.addEventListener('touchstart', e => {
+        touchStartY = e.touches[0].clientY;
+        dragSrcId = parseInt(card.dataset.id);
+      }, { passive: true });
+      card.addEventListener('touchmove', e => {
+        const dy = Math.abs(e.touches[0].clientY - touchStartY);
+        if (dy < 8) return;
+        e.preventDefault();
+        if (!touchClone) {
+          touchClone = card.cloneNode(true);
+          touchClone.style.cssText = `position:fixed;width:${card.offsetWidth}px;opacity:0.85;pointer-events:none;z-index:999;border-radius:18px;transform:scale(1.03);box-shadow:0 12px 32px rgba(0,0,0,0.25);`;
+          document.body.appendChild(touchClone);
+          card.classList.add('dragging');
+        }
+        const touch = e.touches[0];
+        touchClone.style.left = card.getBoundingClientRect().left + 'px';
+        touchClone.style.top = (touch.clientY - card.offsetHeight / 2) + 'px';
+        const els = document.elementsFromPoint(touch.clientX, touch.clientY);
+        const over = els.find(el => el.classList.contains('goal-card') && el !== card && !el.contains(touchClone));
+        scroll.querySelectorAll('.goal-card').forEach(c => c.classList.remove('drag-over'));
+        if (over) { over.classList.add('drag-over'); touchTargetId = parseInt(over.dataset.id); }
+        else touchTargetId = null;
+      }, { passive: false });
+      card.addEventListener('touchend', () => {
+        if (touchClone) { touchClone.remove(); touchClone = null; }
+        card.classList.remove('dragging');
+        scroll.querySelectorAll('.goal-card').forEach(c => c.classList.remove('drag-over'));
+        if (touchTargetId && touchTargetId !== dragSrcId) {
+          reorderGoals(dragSrcId, touchTargetId);
+        }
+        touchTargetId = null;
+      });
+    });
+  }
+
+  function reorderGoals(srcId, tgtId) {
+    // Work in display order, then write back to goals
+    const order = [...displayOrder];
+    const srcIdx = order.indexOf(srcId);
+    const tgtIdx = order.indexOf(tgtId);
+    if (srcIdx === -1 || tgtIdx === -1) return;
+    order.splice(srcIdx, 1);
+    order.splice(tgtIdx, 0, srcId);
+    // Rebuild goals array in new order
+    goals = order.map(id => goals.find(g => g.id === id)).filter(Boolean);
+    currentSort = 'manual';
+    saveSort(); save(); renderGoals();
+  }
 
   function toggleDotsMenu(e) {
     e.stopPropagation();
@@ -499,12 +688,13 @@
   function saveGoal() {
     const name = document.getElementById('ng-name').value.trim();
     if (!name) { document.getElementById('ng-name').focus(); return; }
-    const target = parseInt(document.getElementById('ng-target').value) || 10000;
+    const target = parseInt(document.getElementById('ng-target').value);
+    if (!target || target < 1) { document.getElementById('ng-target').focus(); return; }
     const deadline = document.getElementById('ng-deadline').value || null;
     goals.push({ id: Date.now(), name, target, unit: selectedUnit, deadline, logs: [] });
     save(); renderGoals(); closeNewSheet();
     document.getElementById('ng-name').value = '';
-    document.getElementById('ng-target').value = '10000';
+    document.getElementById('ng-target').value = '';
     document.getElementById('ng-deadline').value = '';
   }
 
@@ -538,13 +728,14 @@
         <p>No goals yet.<br>Tap <strong>+</strong> to create your first one.</p>
       </div>`; return;
     }
-    el.innerHTML = goals.map(g => {
+    const sorted = getSortedGoals();
+    el.innerHTML = sorted.map(g => {
       const done = total(g), pct = Math.min(100, Math.round(done/g.target*100)), comp = done >= g.target;
       const unit = g.unit || 'Reps';
       const last = g.logs.length ? fmtDate(g.logs[g.logs.length-1].ts) : 'No sessions yet';
       const dl = fmtDeadline(g.deadline, comp);
       const overdue = isOverdue(g.deadline, comp);
-      return `<div class="goal-card" onclick="openDetail(${g.id})">
+      return `<div class="goal-card" data-id="${g.id}" onclick="openDetail(${g.id})">
         <div class="card-top">
           <span class="card-exercise">${g.name}</span>
           <span class="card-badge ${comp?'done':''}">${comp?'Done':pct+'%'}</span>
@@ -561,6 +752,7 @@
         <div class="card-meta">Last: ${last}</div>
       </div>`;
     }).join('');
+    initDrag();
   }
 
   function openDetail(id) {
@@ -619,6 +811,7 @@
     document.getElementById('log-reps').value = '';
     document.getElementById('log-dt').value = nowISO();
     renderDetail();
+    closeDetail();
   }
 
   function delLog(idx) {
