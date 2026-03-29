@@ -5,52 +5,143 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Goal Tracker">
+  <meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f5f5f3" media="(prefers-color-scheme: light)">
+  <link rel="manifest" href="manifest.json">
   <title>Goal Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    *, *::before, *::after {
+      box-sizing: border-box; margin: 0; padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
     :root {
-      --ff-display: 'DM Serif Display', serif; --ff-body: 'DM Sans', sans-serif;
+      --ff-display: 'DM Serif Display', serif;
+      --ff-body: 'DM Sans', sans-serif;
       --bg: #f5f5f3; --surface: #ffffff; --surface-2: #f0efeb;
       --text-primary: #1a1a18; --text-secondary: #888780;
       --border: rgba(0,0,0,0.1); --border-strong: rgba(0,0,0,0.2);
       --accent: #1a1a18; --done-bg: #e8f5e8; --done-text: #2e7d32;
     }
+    [data-theme="dark"] {
+      --bg: #111110; --surface: #1c1c1a; --surface-2: #252523;
+      --text-primary: #f0ede8; --text-secondary: #888780;
+      --border: rgba(255,255,255,0.1); --border-strong: rgba(255,255,255,0.2);
+      --accent: #f0ede8; --done-bg: #1a2e1a; --done-text: #81c784;
+    }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --bg: #111110; --surface: #1c1c1a; --surface-2: #252523;
         --text-primary: #f0ede8; --text-secondary: #888780;
         --border: rgba(255,255,255,0.1); --border-strong: rgba(255,255,255,0.2);
         --accent: #f0ede8; --done-bg: #1a2e1a; --done-text: #81c784;
       }
     }
-    html, body { font-family: var(--ff-body); background: var(--bg); min-height: 100vh; min-height: 100dvh; color: var(--text-primary); overflow-x: hidden; }
-    .app-shell { width: 100%; max-width: 430px; margin: 0 auto; min-height: 100vh; min-height: 100dvh; background: var(--bg); display: flex; flex-direction: column; position: relative; overflow: hidden; }
-    .status-bar { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px 6px; font-size: 12px; font-weight: 500; color: var(--text-secondary); flex-shrink: 0; }
+    html, body {
+      font-family: var(--ff-body); background: var(--bg);
+      min-height: 100vh; min-height: 100dvh;
+      color: var(--text-primary); overflow-x: hidden;
+    }
+    .app-shell {
+      width: 100%; max-width: 430px; margin: 0 auto;
+      min-height: 100vh; min-height: 100dvh;
+      background: var(--bg); display: flex; flex-direction: column;
+      position: relative; overflow: hidden;
+    }
+
     .home-screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .home-header { padding: 10px 20px 18px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-    .home-header h1 { font-family: var(--ff-display); font-size: 28px; font-weight: 400; color: var(--text-primary); }
-    .fab { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: opacity 0.15s; }
+    .home-header {
+      padding: 10px 20px 18px; display: flex;
+      justify-content: space-between; align-items: center; flex-shrink: 0;
+    }
+    .home-header h1 {
+      font-family: var(--ff-display); font-size: 28px;
+      font-weight: 400; color: var(--text-primary);
+    }
+    .fab {
+      position: fixed; bottom: 28px;
+      left: calc(50% + min(215px, 50vw) - 52px - 16px);
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--accent); border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; transition: opacity 0.15s;
+      z-index: 5; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    }
     .fab:active { opacity: 0.7; }
     .fab svg { stroke: var(--surface); }
-    .goals-scroll { flex: 1; overflow-y: auto; padding: 0 16px 120px; display: flex; flex-direction: column; gap: 12px; -webkit-overflow-scrolling: touch; }
+    /* Header dots */
+    .header-dots-wrap { position: relative; }
+    .header-dots-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: none; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .header-dots-btn:active { background: var(--surface-2); }
+    .header-dots-menu {
+      position: absolute; top: 44px; right: 0;
+      background: var(--surface); border: 0.5px solid var(--border-strong);
+      border-radius: 14px; min-width: 200px; z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      overflow: hidden; display: none;
+    }
+    .header-dots-menu.open { display: block; }
+    .hm-label {
+      padding: 10px 16px 6px; font-size: 11px; font-weight: 500;
+      color: var(--text-secondary); letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .hm-item {
+      padding: 12px 16px; font-size: 15px; font-family: var(--ff-body);
+      color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 10px;
+      transition: background 0.1s;
+    }
+    .hm-item:active { background: var(--surface-2); }
+    .hm-item + .hm-item { border-top: 0.5px solid var(--border); }
+    .hm-item.active-sort { color: var(--accent); font-weight: 500; }
+    /* Drag styles */
+    .goal-card.dragging {
+      opacity: 0.4; transform: scale(0.97);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+    .goal-card.drag-over { border-color: var(--accent); }
+    .goals-scroll {
+      flex: 1; overflow-y: auto; padding: 0 16px 120px;
+      display: flex; flex-direction: column; gap: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
     .goals-scroll::-webkit-scrollbar { display: none; }
-    .goal-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 18px; padding: 18px; cursor: pointer; transition: transform 0.1s; -webkit-user-select: none; user-select: none; }
+    .goal-card {
+      background: var(--surface); border: 0.5px solid var(--border);
+      border-radius: 18px; padding: 18px; cursor: pointer;
+      transition: transform 0.1s; -webkit-user-select: none; user-select: none;
+    }
     .goal-card:active { transform: scale(0.98); }
-    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
-    .card-exercise { font-family: var(--ff-display); font-size: 20px; font-weight: 400; color: var(--text-primary); line-height: 1.2; flex: 1; padding-right: 8px; }
-    .card-badge { font-size: 11px; font-weight: 500; background: var(--surface-2); color: var(--text-secondary); border-radius: 20px; padding: 4px 10px; white-space: nowrap; flex-shrink: 0; }
+    .card-top {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 4px;
+    }
+    .card-exercise {
+      font-family: var(--ff-display); font-size: 20px; font-weight: 400;
+      color: var(--text-primary); line-height: 1.2; flex: 1; padding-right: 8px;
+    }
+    .card-badge {
+      font-size: 11px; font-weight: 500; background: var(--surface-2);
+      color: var(--text-secondary); border-radius: 20px;
+      padding: 4px 10px; white-space: nowrap; flex-shrink: 0;
+    }
     .card-badge.done { background: var(--done-bg); color: var(--done-text); }
-    .card-alarm { font-size: 11px; color: var(--text-secondary); margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
     .card-deadline { font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; }
     .card-deadline.overdue { color: #c0392b; }
     .card-nums { display: flex; align-items: baseline; gap: 4px; margin-bottom: 10px; }
     .card-cur { font-size: 30px; font-weight: 500; color: var(--text-primary); }
     .card-sep, .card-tot { font-size: 15px; color: var(--text-secondary); }
-    .progress-track { height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+    .progress-track {
+      height: 5px; background: var(--surface-2); border-radius: 3px;
+      overflow: hidden; margin-bottom: 10px;
+    }
     .progress-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.4s ease; }
     .progress-fill.done { background: #4caf50; }
     .card-meta { font-size: 11px; color: var(--text-secondary); }
@@ -58,73 +149,105 @@
     .empty-state svg { display: block; margin: 0 auto 14px; opacity: 0.25; }
     .empty-state p { font-size: 15px; line-height: 1.7; }
     .empty-state strong { color: var(--text-primary); }
-
-    /* SHEETS */
-    .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sheet-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
     .sheet-bg.show { opacity: 1; pointer-events: all; }
-    .sheet { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 430px; background: var(--surface); border-radius: 22px 22px 0 0; z-index: 20; transition: transform 0.32s cubic-bezier(0.32,0.72,0,1); max-height: 92vh; max-height: 92dvh; display: flex; flex-direction: column; }
+    .sheet {
+      position: fixed; bottom: 0; left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%; max-width: 430px; background: var(--surface);
+      border-radius: 22px 22px 0 0; z-index: 20;
+      transition: transform 0.32s cubic-bezier(0.32,0.72,0,1);
+      max-height: 92vh; max-height: 92dvh; display: flex; flex-direction: column;
+    }
     .sheet.show { transform: translateX(-50%) translateY(0); }
-    .sheet-handle { width: 38px; height: 4px; background: var(--border-strong); border-radius: 2px; margin: 14px auto 0; flex-shrink: 0; }
-    .sheet-inner { padding: 18px 22px 40px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+    .sheet-handle {
+      width: 38px; height: 4px; background: var(--border-strong);
+      border-radius: 2px; margin: 14px auto 0; flex-shrink: 0;
+    }
+    .sheet-inner {
+      padding: 18px 22px 40px; overflow-y: auto; flex: 1;
+      -webkit-overflow-scrolling: touch;
+    }
     .sheet-inner::-webkit-scrollbar { display: none; }
-    .sheet-title { font-family: var(--ff-display); font-size: 24px; font-weight: 400; color: var(--text-primary); margin-bottom: 20px; }
-
-    /* FIELDS */
+    .sheet-title {
+      font-family: var(--ff-display); font-size: 24px; font-weight: 400;
+      color: var(--text-primary); margin-bottom: 20px;
+    }
     .field { margin-bottom: 16px; }
-    .field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
-    .field input, .field select { width: 100%; font-size: 16px; padding: 13px 14px; border: 0.5px solid var(--border-strong); border-radius: 12px; background: var(--surface-2); color: var(--text-primary); font-family: var(--ff-body); appearance: none; -webkit-appearance: none; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 500;
+      color: var(--text-secondary); margin-bottom: 6px;
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .field input, .field select {
+      width: 100%; font-size: 16px; padding: 13px 14px;
+      border: 0.5px solid var(--border-strong); border-radius: 12px;
+      background: var(--surface-2); color: var(--text-primary);
+      font-family: var(--ff-body); appearance: none; -webkit-appearance: none;
+    }
     .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
 
-    /* PILLS */
+    /* Unit pills */
     .unit-pills { display: flex; gap: 8px; }
-    .unit-pill { flex: 1; padding: 12px 6px; text-align: center; font-size: 14px; font-weight: 500; font-family: var(--ff-body); border: 0.5px solid var(--border-strong); border-radius: 12px; background: var(--surface-2); color: var(--text-secondary); cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
-    .unit-pill.active { background: var(--accent); color: var(--surface); border-color: var(--accent); }
-
-    /* ALARM SECTION */
-    .alarm-toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 14px; border: 0.5px solid var(--border-strong); border-radius: 12px; background: var(--surface-2); margin-bottom: 10px; }
-    .alarm-toggle-label { font-size: 15px; color: var(--text-primary); }
-    .toggle-switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .toggle-track { position: absolute; inset: 0; background: var(--border-strong); border-radius: 13px; cursor: pointer; transition: background 0.2s; }
-    .toggle-track::after { content: ''; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: transform 0.2s; }
-    .toggle-switch input:checked + .toggle-track { background: var(--accent); }
-    .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
-
-    .alarm-fields { display: none; flex-direction: column; gap: 10px; }
-    .alarm-fields.visible { display: flex; }
-
-    .alarm-time-row { display: flex; gap: 10px; }
-    .alarm-time-row .field { flex: 1; margin-bottom: 0; }
-
-    /* Sound picker */
-    .sound-options { display: flex; flex-direction: column; gap: 8px; }
-    .sound-option { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border: 0.5px solid var(--border-strong); border-radius: 12px; background: var(--surface-2); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-    .sound-option.active { border-color: var(--accent); background: var(--surface); }
-    .sound-option-left { display: flex; align-items: center; gap: 10px; }
-    .sound-icon { width: 34px; height: 34px; border-radius: 8px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 16px; border: 0.5px solid var(--border); }
-    .sound-option.active .sound-icon { background: var(--accent); border-color: var(--accent); }
-    .sound-name { font-size: 14px; font-weight: 500; color: var(--text-primary); }
-    .sound-desc { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
-    .preview-btn { font-size: 11px; font-weight: 500; color: var(--text-secondary); background: none; border: 0.5px solid var(--border-strong); border-radius: 8px; padding: 5px 10px; cursor: pointer; font-family: var(--ff-body); transition: opacity 0.15s; }
-    .preview-btn:active { opacity: 0.6; }
-
-    /* Repeat pills */
-    .repeat-pills { display: flex; gap: 6px; flex-wrap: wrap; }
-    .repeat-pill { padding: 8px 10px; font-size: 12px; font-weight: 500; font-family: var(--ff-body); border: 0.5px solid var(--border-strong); border-radius: 8px; background: var(--surface-2); color: var(--text-secondary); cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
-    .repeat-pill.active { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+    .unit-pill {
+      flex: 1; padding: 12px 6px; text-align: center;
+      font-size: 14px; font-weight: 500; font-family: var(--ff-body);
+      border: 0.5px solid var(--border-strong); border-radius: 12px;
+      background: var(--surface-2); color: var(--text-secondary);
+      cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .unit-pill.active {
+      background: var(--accent); color: var(--surface); border-color: var(--accent);
+    }
 
     .btn-row { display: flex; gap: 10px; margin-top: 22px; }
-    .btn-row button { flex: 1; padding: 15px; font-family: var(--ff-body); font-size: 16px; font-weight: 500; border-radius: 14px; cursor: pointer; border: none; transition: opacity 0.15s; }
+    .btn-row button {
+      flex: 1; padding: 15px; font-family: var(--ff-body); font-size: 16px;
+      font-weight: 500; border-radius: 14px; cursor: pointer; border: none; transition: opacity 0.15s;
+    }
     .btn-row button:active { opacity: 0.75; }
     .btn-sec { background: var(--surface-2); color: var(--text-secondary); }
     .btn-pri { background: var(--accent); color: var(--surface); }
 
-    /* DETAIL SHEET */
-    .detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; gap: 12px; }
-    .detail-header h2 { font-family: var(--ff-display); font-size: 24px; font-weight: 400; color: var(--text-primary); line-height: 1.2; flex: 1; }
-    .save-btn { background: var(--accent); color: var(--surface); border: none; border-radius: 12px; padding: 9px 18px; font-family: var(--ff-body); font-size: 14px; font-weight: 500; cursor: pointer; flex-shrink: 0; transition: opacity 0.15s; }
-    .save-btn:active { opacity: 0.75; }
-    .detail-progress { background: var(--surface-2); border-radius: 16px; padding: 18px; margin-bottom: 22px; }
+    /* Detail sheet */
+    .detail-header {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 18px; gap: 12px;
+    }
+    .detail-header h2 {
+      font-family: var(--ff-display); font-size: 24px; font-weight: 400;
+      color: var(--text-primary); line-height: 1.2; flex: 1;
+    }
+    .three-dots-btn {
+      background: var(--surface-2); border: 0.5px solid var(--border-strong);
+      border-radius: 50%; width: 40px; height: 40px; display: flex;
+      align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; transition: opacity 0.15s; position: relative;
+    }
+    .three-dots-btn:active { opacity: 0.7; }
+    .three-dots-btn svg { display: block; }
+    .dots-menu {
+      position: absolute; top: 48px; right: 0;
+      background: var(--surface); border: 0.5px solid var(--border-strong);
+      border-radius: 14px; min-width: 180px; z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      overflow: hidden; display: none;
+    }
+    .dots-menu.open { display: block; }
+    .dots-menu-item {
+      padding: 14px 18px; font-size: 15px; font-family: var(--ff-body);
+      color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 10px;
+      transition: background 0.1s;
+    }
+    .dots-menu-item:active { background: var(--surface-2); }
+    .dots-menu-item.danger { color: #c0392b; }
+    .dots-menu-item + .dots-menu-item { border-top: 0.5px solid var(--border); }
+    .detail-progress {
+      background: var(--surface-2); border-radius: 16px; padding: 18px; margin-bottom: 22px;
+    }
     .d-nums { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
     .d-cur { font-size: 40px; font-weight: 500; color: var(--text-primary); }
     .d-sep, .d-tot { font-size: 18px; color: var(--text-secondary); }
@@ -135,70 +258,115 @@
     .d-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
     .d-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s ease; }
     .d-fill.done { background: #4caf50; }
-    .sec-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 12px; }
+    .sec-label {
+      font-size: 11px; font-weight: 500; color: var(--text-secondary);
+      letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 12px;
+    }
     .log-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-    .log-form input { width: 100%; font-size: 16px; padding: 13px 14px; border: 0.5px solid var(--border-strong); border-radius: 12px; background: var(--surface-2); color: var(--text-primary); font-family: var(--ff-body); }
+    .log-form input {
+      width: 100%; font-size: 16px; padding: 13px 14px;
+      border: 0.5px solid var(--border-strong); border-radius: 12px;
+      background: var(--surface-2); color: var(--text-primary); font-family: var(--ff-body);
+    }
     .log-form input:focus { outline: none; border-color: var(--accent); }
-    .log-add-btn { width: 100%; padding: 15px; background: var(--accent); color: var(--surface); border: none; border-radius: 14px; font-family: var(--ff-body); font-size: 16px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+    .log-input-row { display: flex; gap: 10px; align-items: stretch; }
+    .log-input-row input { flex: 1; margin: 0; }
+    .log-add-btn {
+      padding: 13px 20px; background: var(--accent); color: var(--surface);
+      border: none; border-radius: 12px; font-family: var(--ff-body);
+      font-size: 16px; font-weight: 500; cursor: pointer; transition: opacity 0.15s;
+      white-space: nowrap; flex-shrink: 0;
+    }
     .log-add-btn:active { opacity: 0.75; }
     .log-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-    .log-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: var(--surface-2); border-radius: 12px; }
+    .log-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 14px; background: var(--surface-2); border-radius: 12px;
+    }
     .log-item-left { display: flex; flex-direction: column; gap: 3px; }
     .log-reps { font-size: 15px; font-weight: 500; color: var(--text-primary); }
     .log-time { font-size: 11px; color: var(--text-secondary); }
-    .log-del { background: none; border: none; font-size: 16px; color: var(--text-secondary); cursor: pointer; padding: 6px 8px; line-height: 1; }
+    .log-del {
+      background: none; border: none; font-size: 16px;
+      color: var(--text-secondary); cursor: pointer; padding: 6px 8px; line-height: 1;
+    }
     .no-logs { font-size: 13px; color: var(--text-secondary); padding: 6px 0; }
-    .del-goal-btn { width: 100%; padding: 14px; background: none; border: 0.5px solid var(--border-strong); border-radius: 14px; color: var(--text-secondary); font-family: var(--ff-body); font-size: 14px; cursor: pointer; margin-top: 8px; transition: border-color 0.15s, color 0.15s; }
+    .del-goal-btn {
+      width: 100%; padding: 14px; background: none;
+      border: 0.5px solid var(--border-strong); border-radius: 14px;
+      color: var(--text-secondary); font-family: var(--ff-body);
+      font-size: 14px; cursor: pointer; margin-top: 8px; transition: border-color 0.15s, color 0.15s;
+    }
     .del-goal-btn:active { border-color: #e57373; color: #c0392b; }
-
-    /* ALARM TOAST */
-    .alarm-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-120px); width: calc(100% - 32px); max-width: 400px; background: var(--surface); border: 0.5px solid var(--border-strong); border-radius: 16px; padding: 16px 18px; z-index: 999; box-shadow: 0 4px 24px rgba(0,0,0,0.12); transition: transform 0.35s cubic-bezier(0.32,0.72,0,1); display: flex; align-items: flex-start; gap: 12px; }
-    .alarm-toast.show { transform: translateX(-50%) translateY(0); }
-    .toast-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-    .toast-body { flex: 1; }
-    .toast-title { font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 2px; }
-    .toast-sub { font-size: 12px; color: var(--text-secondary); }
-    .toast-close { background: none; border: none; font-size: 18px; color: var(--text-secondary); cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0; }
   </style>
 </head>
 <body>
 <div class="app-shell">
-  <div class="status-bar">
-    <span id="clock">9:41</span>
-    <span>Goal Tracker</span>
-    <span style="letter-spacing:2px;">···</span>
-  </div>
 
   <div class="home-screen">
     <div class="home-header">
       <h1>My Goals</h1>
-      <button class="fab" onclick="openNewSheet()" aria-label="New goal">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </button>
+      <div class="header-dots-wrap">
+        <button class="header-dots-btn" onclick="toggleHeaderMenu(event)" id="header-dots-btn" aria-label="Options">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-primary)">
+            <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+          </svg>
+        </button>
+        <div class="header-dots-menu" id="header-dots-menu">
+          <div class="hm-label">Sort</div>
+          <div class="hm-item" id="sort-name" onclick="setSort('name')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Sort by Name
+          </div>
+          <div class="hm-item" id="sort-created" onclick="setSort('created')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Sort by Date Created
+          </div>
+          <div class="hm-item" id="sort-modified" onclick="setSort('modified')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Sort by Last Modified
+          </div>
+          <div class="hm-label" style="margin-top:6px; border-top: 0.5px solid var(--border); padding-top:10px;">Appearance</div>
+          <div class="hm-item" id="theme-system" onclick="setTheme('system')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            System Default
+          </div>
+          <div class="hm-item" id="theme-light" onclick="setTheme('light')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            Light
+          </div>
+          <div class="hm-item" id="theme-dark" onclick="setTheme('dark')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Dark
+          </div>
+        </div>
+      </div>
     </div>
     <div class="goals-scroll" id="goals-scroll"></div>
   </div>
 
+  <!-- Bottom FAB -->
+  <button class="fab" onclick="openNewSheet()" aria-label="New goal">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  </button>
+
   <div class="sheet-bg" id="sheet-bg" onclick="closeBothSheets()"></div>
 
-  <!-- NEW GOAL SHEET -->
+  <!-- New Goal Sheet -->
   <div class="sheet" id="new-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-inner">
       <div class="sheet-title">New goal</div>
-
       <div class="field">
         <label>Goal</label>
         <input type="text" id="ng-name" placeholder="e.g. 10,000 Push-ups">
       </div>
-
       <div class="field">
         <label>Target</label>
-        <input type="number" id="ng-target" value="10000" min="1" inputmode="numeric">
+        <input type="number" id="ng-target" min="1" inputmode="numeric" placeholder="e.g. 10000">
       </div>
-
       <div class="field">
         <label>Unit</label>
         <div class="unit-pills">
@@ -208,83 +376,10 @@
           <button class="unit-pill" onclick="selectUnit(this,'Mins')">Mins</button>
         </div>
       </div>
-
       <div class="field">
         <label>Deadline</label>
         <input type="date" id="ng-deadline">
       </div>
-
-      <!-- ALARM SECTION -->
-      <div class="field">
-        <label>Reminder alarm</label>
-        <div class="alarm-toggle-row">
-          <span class="alarm-toggle-label">Enable daily reminder</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="alarm-toggle" onchange="toggleAlarm()">
-            <span class="toggle-track"></span>
-          </label>
-        </div>
-
-        <div class="alarm-fields" id="alarm-fields">
-          <!-- Time -->
-          <div class="field" style="margin-bottom:0;">
-            <label>Reminder time</label>
-            <input type="time" id="alarm-time" value="08:00">
-          </div>
-
-          <!-- Repeat days -->
-          <div class="field" style="margin-bottom:0;">
-            <label>Repeat on</label>
-            <div class="repeat-pills">
-              <button class="repeat-pill active" onclick="toggleDay(this,'Mon')">Mon</button>
-              <button class="repeat-pill active" onclick="toggleDay(this,'Tue')">Tue</button>
-              <button class="repeat-pill active" onclick="toggleDay(this,'Wed')">Wed</button>
-              <button class="repeat-pill active" onclick="toggleDay(this,'Thu')">Thu</button>
-              <button class="repeat-pill active" onclick="toggleDay(this,'Fri')">Fri</button>
-              <button class="repeat-pill" onclick="toggleDay(this,'Sat')">Sat</button>
-              <button class="repeat-pill" onclick="toggleDay(this,'Sun')">Sun</button>
-            </div>
-          </div>
-
-          <!-- Sound picker -->
-          <div class="field" style="margin-bottom:0;">
-            <label>Alarm sound</label>
-            <div class="sound-options">
-              <div class="sound-option active" onclick="selectSound(this,'bell')" id="sound-bell">
-                <div class="sound-option-left">
-                  <div class="sound-icon" id="icon-bell">🔔</div>
-                  <div>
-                    <div class="sound-name">Bell</div>
-                    <div class="sound-desc">Classic chime</div>
-                  </div>
-                </div>
-                <button class="preview-btn" onclick="event.stopPropagation(); previewSound('bell')">Preview</button>
-              </div>
-              <div class="sound-option" onclick="selectSound(this,'pulse')" id="sound-pulse">
-                <div class="sound-option-left">
-                  <div class="sound-icon" id="icon-pulse">💓</div>
-                  <div>
-                    <div class="sound-name">Pulse</div>
-                    <div class="sound-desc">Soft beeps</div>
-                  </div>
-                </div>
-                <button class="preview-btn" onclick="event.stopPropagation(); previewSound('pulse')">Preview</button>
-              </div>
-              <div class="sound-option" onclick="selectSound(this,'chime')" id="sound-chime">
-                <div class="sound-option-left">
-                  <div class="sound-icon" id="icon-chime">🎵</div>
-                  <div>
-                    <div class="sound-name">Chime</div>
-                    <div class="sound-desc">Ascending tone</div>
-                  </div>
-                </div>
-                <button class="preview-btn" onclick="event.stopPropagation(); previewSound('chime')">Preview</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div class="btn-row">
         <button class="btn-sec" onclick="closeNewSheet()">Cancel</button>
         <button class="btn-pri" onclick="saveGoal()">Create</button>
@@ -292,13 +387,31 @@
     </div>
   </div>
 
-  <!-- DETAIL SHEET -->
+  <!-- Detail Sheet -->
   <div class="sheet" id="detail-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-inner">
       <div class="detail-header">
         <h2 id="d-title"></h2>
-        <button class="save-btn" onclick="closeDetail()">Save</button>
+        <div class="three-dots-btn" onclick="toggleDotsMenu(event)" id="dots-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-primary)">
+            <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+          </svg>
+          <div class="dots-menu" id="dots-menu">
+            <div class="dots-menu-item" onclick="openEditSheet()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Edit goal
+            </div>
+            <div class="dots-menu-item" onclick="showSessionHistory()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Session history
+            </div>
+            <div class="dots-menu-item danger" onclick="deleteGoal()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Delete goal
+            </div>
+          </div>
+        </div>
       </div>
       <div class="detail-progress">
         <div class="d-nums">
@@ -314,161 +427,272 @@
       <div class="sec-label">Log a session</div>
       <div class="log-form">
         <input type="datetime-local" id="log-dt">
-        <input type="number" id="log-reps" min="1" placeholder="Amount" inputmode="numeric">
-        <button class="log-add-btn" onclick="addLog()">Add session</button>
+        <div class="log-input-row">
+          <input type="number" id="log-reps" min="1" placeholder="Amount" inputmode="numeric">
+          <button class="log-add-btn" onclick="addLog()">Add</button>
+        </div>
       </div>
-      <div class="sec-label">Session history</div>
-      <div class="log-list" id="log-list"></div>
-      <button class="del-goal-btn" onclick="deleteGoal()">Delete this goal</button>
     </div>
   </div>
 </div>
 
-<!-- ALARM TOAST -->
-<div class="alarm-toast" id="alarm-toast">
-  <div class="toast-icon" id="toast-icon">🔔</div>
-  <div class="toast-body">
-    <div class="toast-title" id="toast-title">Time to work on your goal!</div>
-    <div class="toast-sub" id="toast-sub"></div>
+  <!-- Edit Goal Sheet -->
+  <div class="sheet" id="edit-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-inner">
+      <div class="sheet-title">Edit goal</div>
+      <div class="field">
+        <label>Goal</label>
+        <input type="text" id="eg-name" placeholder="e.g. 10,000 Push-ups">
+      </div>
+      <div class="field">
+        <label>Target</label>
+        <input type="number" id="eg-target" min="1" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Unit</label>
+        <div class="unit-pills" id="eg-unit-pills">
+          <button class="unit-pill" onclick="selectEditUnit(this,'Reps')">Reps</button>
+          <button class="unit-pill" onclick="selectEditUnit(this,'Days')">Days</button>
+          <button class="unit-pill" onclick="selectEditUnit(this,'Hours')">Hours</button>
+          <button class="unit-pill" onclick="selectEditUnit(this,'Mins')">Mins</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Deadline</label>
+        <input type="date" id="eg-deadline">
+      </div>
+      <div class="btn-row">
+        <button class="btn-sec" onclick="closeEditSheet()">Cancel</button>
+        <button class="btn-pri" onclick="saveEditGoal()">Save</button>
+      </div>
+    </div>
   </div>
-  <button class="toast-close" onclick="dismissToast()">✕</button>
-</div>
+
+  <!-- Session History Sheet -->
+  <div class="sheet" id="history-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-inner">
+      <div class="sheet-title">Session history</div>
+      <div class="log-list" id="log-list"></div>
+    </div>
+  </div>
 
 <script>
   let goals = JSON.parse(localStorage.getItem('gt-goals') || '[]');
   let activeId = null;
   let selectedUnit = 'Reps';
-  let selectedSound = 'bell';
-  let selectedDays = ['Mon','Tue','Wed','Thu','Fri'];
-  let audioCtx = null;
+  let selectedEditUnit = 'Reps';
+  let currentSort = localStorage.getItem('gt-sort') || 'manual';
 
   function save() { localStorage.setItem('gt-goals', JSON.stringify(goals)); }
+  function saveSort() { localStorage.setItem('gt-sort', currentSort); }
 
-  function getAudioCtx() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    return audioCtx;
+  // --- Header dots menu ---
+  document.addEventListener('click', function(e) {
+    const menu = document.getElementById('header-dots-menu');
+    const btn = document.getElementById('header-dots-btn');
+    if (menu && !btn.contains(e.target)) menu.classList.remove('open');
+    const dmenu = document.getElementById('dots-menu');
+    const dbtn = document.getElementById('dots-btn');
+    if (dmenu && dbtn && !dbtn.contains(e.target)) dmenu.classList.remove('open');
+  });
+
+  function toggleHeaderMenu(e) {
+    e.stopPropagation();
+    document.getElementById('header-dots-menu').classList.toggle('open');
+    updateSortUI();
   }
 
-  // ── SOUND ENGINE ──────────────────────────────────────────────
-  function playBell(ctx) {
-    const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, t);
-    osc.frequency.exponentialRampToValueAtTime(440, t + 0.8);
-    gain.gain.setValueAtTime(0.5, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
-    osc.start(t); osc.stop(t + 1.2);
-  }
-
-  function playPulse(ctx) {
-    [0, 0.3, 0.6].forEach(offset => {
-      const t = ctx.currentTime + offset;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(660, t);
-      gain.gain.setValueAtTime(0.4, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-      osc.start(t); osc.stop(t + 0.18);
+  function updateSortUI() {
+    ['name','created','modified'].forEach(s => {
+      document.getElementById('sort-' + s).classList.toggle('active-sort', currentSort === s);
+    });
+    ['system','light','dark'].forEach(t => {
+      document.getElementById('theme-' + t).classList.toggle('active-sort', currentTheme === t);
     });
   }
 
-  function playChime(ctx) {
-    const notes = [523, 659, 784, 1047];
-    notes.forEach((freq, i) => {
-      const t = ctx.currentTime + i * 0.18;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, t);
-      gain.gain.setValueAtTime(0.35, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-      osc.start(t); osc.stop(t + 0.5);
+  // --- Theme ---
+  let currentTheme = localStorage.getItem('gt-theme') || 'system';
+
+  function applyTheme(theme) {
+    const root = document.documentElement;
+    if (theme === 'dark') root.setAttribute('data-theme', 'dark');
+    else if (theme === 'light') root.setAttribute('data-theme', 'light');
+    else root.removeAttribute('data-theme');
+  }
+
+  function setTheme(theme) {
+    currentTheme = theme;
+    localStorage.setItem('gt-theme', theme);
+    applyTheme(theme);
+    updateSortUI();
+    document.getElementById('header-dots-menu').classList.remove('open');
+  }
+
+  applyTheme(currentTheme);
+
+  function setSort(type) {
+    currentSort = type;
+    saveSort();
+    document.getElementById('header-dots-menu').classList.remove('open');
+    renderGoals();
+  }
+
+  function getSortedGoals() {
+    const arr = [...goals];
+    if (currentSort === 'name') arr.sort((a,b) => a.name.localeCompare(b.name));
+    else if (currentSort === 'created') arr.sort((a,b) => a.id - b.id);
+    else if (currentSort === 'modified') arr.sort((a,b) => {
+      const la = a.logs.length ? a.logs[a.logs.length-1].ts : a.id;
+      const lb = b.logs.length ? b.logs[b.logs.length-1].ts : b.id;
+      return lb - la;
+    });
+    return arr;
+  }
+
+  // --- Drag and drop ---
+  let dragSrcId = null;
+  let displayOrder = []; // tracks the current visual order of goal ids
+
+  function initDrag() {
+    const scroll = document.getElementById('goals-scroll');
+    const cards = scroll.querySelectorAll('.goal-card');
+    // Build display order from rendered cards
+    displayOrder = [...cards].map(c => parseInt(c.dataset.id));
+
+    cards.forEach(card => {
+      card.setAttribute('draggable', 'true');
+
+      card.addEventListener('dragstart', e => {
+        dragSrcId = parseInt(card.dataset.id);
+        setTimeout(() => card.classList.add('dragging'), 0);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        scroll.querySelectorAll('.goal-card').forEach(c => c.classList.remove('drag-over'));
+      });
+      card.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        scroll.querySelectorAll('.goal-card').forEach(c => c.classList.remove('drag-over'));
+        card.classList.add('drag-over');
+      });
+      card.addEventListener('drop', e => {
+        e.preventDefault();
+        const targetId = parseInt(card.dataset.id);
+        if (dragSrcId === targetId) return;
+        reorderGoals(dragSrcId, targetId);
+      });
+
+      // Touch drag support
+      let touchStartY = 0, touchClone = null, touchTargetId = null;
+      card.addEventListener('touchstart', e => {
+        touchStartY = e.touches[0].clientY;
+        dragSrcId = parseInt(card.dataset.id);
+      }, { passive: true });
+      card.addEventListener('touchmove', e => {
+        const dy = Math.abs(e.touches[0].clientY - touchStartY);
+        if (dy < 8) return;
+        e.preventDefault();
+        if (!touchClone) {
+          touchClone = card.cloneNode(true);
+          touchClone.style.cssText = `position:fixed;width:${card.offsetWidth}px;opacity:0.85;pointer-events:none;z-index:999;border-radius:18px;transform:scale(1.03);box-shadow:0 12px 32px rgba(0,0,0,0.25);`;
+          document.body.appendChild(touchClone);
+          card.classList.add('dragging');
+        }
+        const touch = e.touches[0];
+        touchClone.style.left = card.getBoundingClientRect().left + 'px';
+        touchClone.style.top = (touch.clientY - card.offsetHeight / 2) + 'px';
+        const els = document.elementsFromPoint(touch.clientX, touch.clientY);
+        const over = els.find(el => el.classList.contains('goal-card') && el !== card && !el.contains(touchClone));
+        scroll.querySelectorAll('.goal-card').forEach(c => c.classList.remove('drag-over'));
+        if (over) { over.classList.add('drag-over'); touchTargetId = parseInt(over.dataset.id); }
+        else touchTargetId = null;
+      }, { passive: false });
+      card.addEventListener('touchend', () => {
+        if (touchClone) { touchClone.remove(); touchClone = null; }
+        card.classList.remove('dragging');
+        scroll.querySelectorAll('.goal-card').forEach(c => c.classList.remove('drag-over'));
+        if (touchTargetId && touchTargetId !== dragSrcId) {
+          reorderGoals(dragSrcId, touchTargetId);
+        }
+        touchTargetId = null;
+      });
     });
   }
 
-  function playSound(name) {
-    try {
-      const ctx = getAudioCtx();
-      if (ctx.state === 'suspended') ctx.resume();
-      if (name === 'bell') playBell(ctx);
-      else if (name === 'pulse') playPulse(ctx);
-      else if (name === 'chime') playChime(ctx);
-    } catch(e) {}
+  function reorderGoals(srcId, tgtId) {
+    // Work in display order, then write back to goals
+    const order = [...displayOrder];
+    const srcIdx = order.indexOf(srcId);
+    const tgtIdx = order.indexOf(tgtId);
+    if (srcIdx === -1 || tgtIdx === -1) return;
+    order.splice(srcIdx, 1);
+    order.splice(tgtIdx, 0, srcId);
+    // Rebuild goals array in new order
+    goals = order.map(id => goals.find(g => g.id === id)).filter(Boolean);
+    currentSort = 'manual';
+    saveSort(); save(); renderGoals();
   }
 
-  function previewSound(name) { playSound(name); }
+  function toggleDotsMenu(e) {
+    e.stopPropagation();
+    document.getElementById('dots-menu').classList.toggle('open');
+  }
 
-  // ── ALARM LOGIC ───────────────────────────────────────────────
-  const DAY_MAP = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
-
-  function checkAlarms() {
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2,'0');
-    const mm = String(now.getMinutes()).padStart(2,'0');
-    const currentTime = `${hh}:${mm}`;
-    const currentDay = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()];
-
-    goals.forEach(g => {
-      if (!g.alarm || !g.alarm.enabled) return;
-      if (g.alarm.time !== currentTime) return;
-      if (!g.alarm.days.includes(currentDay)) return;
-      const lastFired = g.alarm.lastFired || '';
-      const todayKey = `${now.toDateString()}-${currentTime}`;
-      if (lastFired === todayKey) return;
-      g.alarm.lastFired = todayKey;
-      save();
-      fireAlarm(g);
+  function openEditSheet() {
+    document.getElementById('dots-menu').classList.remove('open');
+    const g = goals.find(x => x.id === activeId); if (!g) return;
+    document.getElementById('eg-name').value = g.name;
+    document.getElementById('eg-target').value = g.target;
+    document.getElementById('eg-deadline').value = g.deadline || '';
+    selectedEditUnit = g.unit || 'Reps';
+    document.querySelectorAll('#eg-unit-pills .unit-pill').forEach(p => {
+      p.classList.toggle('active', p.textContent === selectedEditUnit);
     });
+    document.getElementById('edit-sheet').classList.add('show');
   }
 
-  function fireAlarm(g) {
-    playSound(g.alarm.sound);
-    const icons = { bell:'🔔', pulse:'💓', chime:'🎵' };
-    document.getElementById('toast-icon').textContent = icons[g.alarm.sound] || '🔔';
-    document.getElementById('toast-title').textContent = `Time to work on your goal!`;
-    document.getElementById('toast-sub').textContent = g.name;
-    const toast = document.getElementById('alarm-toast');
-    toast.classList.add('show');
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Goal Tracker Reminder', { body: `Time to work on: ${g.name}`, icon: '' });
-    }
-    setTimeout(() => toast.classList.remove('show'), 8000);
+  function closeEditSheet() {
+    document.getElementById('edit-sheet').classList.remove('show');
   }
 
-  function dismissToast() { document.getElementById('alarm-toast').classList.remove('show'); }
-
-  setInterval(checkAlarms, 30000);
-
-  // Request notification permission early
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
+  function selectEditUnit(el, unit) {
+    selectedEditUnit = unit;
+    document.querySelectorAll('#eg-unit-pills .unit-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
   }
 
-  // ── CLOCK ─────────────────────────────────────────────────────
+  function saveEditGoal() {
+    const name = document.getElementById('eg-name').value.trim();
+    if (!name) { document.getElementById('eg-name').focus(); return; }
+    const g = goals.find(x => x.id === activeId); if (!g) return;
+    g.name = name;
+    g.target = parseInt(document.getElementById('eg-target').value) || g.target;
+    g.unit = selectedEditUnit;
+    g.deadline = document.getElementById('eg-deadline').value || null;
+    save(); renderDetail(); closeEditSheet();
+  }
+
+  function showSessionHistory() {
+    document.getElementById('dots-menu').classList.remove('open');
+    renderDetail(); // ensure log-list is up to date
+    document.getElementById('history-sheet').classList.add('show');
+  }
+
+  function closeHistorySheet() {
+    document.getElementById('history-sheet').classList.remove('show');
+  }
+
   function nowISO() {
     const d = new Date(), p = n => String(n).padStart(2,'0');
     return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
   }
-  function updateClock() {
-    const d = new Date(), p = n => String(n).padStart(2,'0');
-    document.getElementById('clock').textContent = p(d.getHours()) + ':' + p(d.getMinutes());
-  }
-  updateClock(); setInterval(updateClock, 10000);
 
-  // ── NEW GOAL FORM ─────────────────────────────────────────────
-  function toggleAlarm() {
-    const on = document.getElementById('alarm-toggle').checked;
-    document.getElementById('alarm-fields').classList.toggle('visible', on);
-    if (on && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }
+
 
   function selectUnit(el, unit) {
     selectedUnit = unit;
@@ -476,29 +700,9 @@
     el.classList.add('active');
   }
 
-  function selectSound(el, sound) {
-    selectedSound = sound;
-    document.querySelectorAll('.sound-option').forEach(s => s.classList.remove('active'));
-    el.classList.add('active');
-    playSound(sound);
-  }
-
-  function toggleDay(el, day) {
-    el.classList.toggle('active');
-    selectedDays = [...document.querySelectorAll('.repeat-pill.active')].map(p => p.textContent);
-  }
-
   function openNewSheet() {
-    selectedUnit = 'Reps'; selectedSound = 'bell';
-    selectedDays = ['Mon','Tue','Wed','Thu','Fri'];
+    selectedUnit = 'Reps';
     document.querySelectorAll('.unit-pill').forEach((p,i) => p.classList.toggle('active', i===0));
-    document.querySelectorAll('.sound-option').forEach((s,i) => s.classList.toggle('active', i===0));
-    document.querySelectorAll('.repeat-pill').forEach(p => {
-      p.classList.toggle('active', ['Mon','Tue','Wed','Thu','Fri'].includes(p.textContent));
-    });
-    document.getElementById('alarm-toggle').checked = false;
-    document.getElementById('alarm-fields').classList.remove('visible');
-    document.getElementById('alarm-time').value = '08:00';
     document.getElementById('sheet-bg').classList.add('show');
     document.getElementById('new-sheet').classList.add('show');
   }
@@ -509,30 +713,24 @@
   }
 
   function closeBothSheets() {
+    if (document.getElementById('history-sheet').classList.contains('show')) { closeHistorySheet(); return; }
+    if (document.getElementById('edit-sheet').classList.contains('show')) { closeEditSheet(); return; }
     if (activeId !== null) closeDetail(); else closeNewSheet();
   }
 
   function saveGoal() {
     const name = document.getElementById('ng-name').value.trim();
     if (!name) { document.getElementById('ng-name').focus(); return; }
-    const target = parseInt(document.getElementById('ng-target').value) || 10000;
+    const target = parseInt(document.getElementById('ng-target').value);
+    if (!target || target < 1) { document.getElementById('ng-target').focus(); return; }
     const deadline = document.getElementById('ng-deadline').value || null;
-    const alarmOn = document.getElementById('alarm-toggle').checked;
-    const alarm = alarmOn ? {
-      enabled: true,
-      time: document.getElementById('alarm-time').value,
-      days: selectedDays,
-      sound: selectedSound,
-      lastFired: ''
-    } : null;
-    goals.push({ id: Date.now(), name, target, unit: selectedUnit, deadline, alarm, logs: [] });
+    goals.push({ id: Date.now(), name, target, unit: selectedUnit, deadline, logs: [] });
     save(); renderGoals(); closeNewSheet();
     document.getElementById('ng-name').value = '';
-    document.getElementById('ng-target').value = '10000';
+    document.getElementById('ng-target').value = '';
     document.getElementById('ng-deadline').value = '';
   }
 
-  // ── GOAL CARDS ────────────────────────────────────────────────
   function total(g) { return g.logs.reduce((s,l) => s+l.reps, 0); }
 
   function fmtDeadline(dl, comp) {
@@ -553,12 +751,6 @@
     return new Date(dl + 'T00:00:00') < today;
   }
 
-  function alarmSummary(alarm) {
-    if (!alarm || !alarm.enabled) return '';
-    const icons = { bell:'🔔', pulse:'💓', chime:'🎵' };
-    return `${icons[alarm.sound]||'🔔'} ${alarm.time} · ${alarm.days.join(', ')}`;
-  }
-
   function renderGoals() {
     const el = document.getElementById('goals-scroll');
     if (!goals.length) {
@@ -569,19 +761,18 @@
         <p>No goals yet.<br>Tap <strong>+</strong> to create your first one.</p>
       </div>`; return;
     }
-    el.innerHTML = goals.map(g => {
+    const sorted = getSortedGoals();
+    el.innerHTML = sorted.map(g => {
       const done = total(g), pct = Math.min(100, Math.round(done/g.target*100)), comp = done >= g.target;
       const unit = g.unit || 'Reps';
       const last = g.logs.length ? fmtDate(g.logs[g.logs.length-1].ts) : 'No sessions yet';
       const dl = fmtDeadline(g.deadline, comp);
       const overdue = isOverdue(g.deadline, comp);
-      const alm = alarmSummary(g.alarm);
-      return `<div class="goal-card" onclick="openDetail(${g.id})">
+      return `<div class="goal-card" data-id="${g.id}" onclick="openDetail(${g.id})">
         <div class="card-top">
           <span class="card-exercise">${g.name}</span>
           <span class="card-badge ${comp?'done':''}">${comp?'Done':pct+'%'}</span>
         </div>
-        ${alm ? `<div class="card-alarm">${alm}</div>` : ''}
         ${dl ? `<div class="card-deadline ${overdue?'overdue':''}">${dl}</div>` : ''}
         <div class="card-nums">
           <span class="card-cur">${done.toLocaleString()}</span>
@@ -594,9 +785,9 @@
         <div class="card-meta">Last: ${last}</div>
       </div>`;
     }).join('');
+    initDrag();
   }
 
-  // ── DETAIL SHEET ──────────────────────────────────────────────
   function openDetail(id) {
     activeId = id;
     document.getElementById('log-dt').value = nowISO();
@@ -607,6 +798,8 @@
   }
 
   function closeDetail() {
+    document.getElementById('edit-sheet').classList.remove('show');
+    document.getElementById('history-sheet').classList.remove('show');
     document.getElementById('detail-sheet').classList.remove('show');
     document.getElementById('sheet-bg').classList.remove('show');
     renderGoals(); activeId = null;
@@ -651,6 +844,7 @@
     document.getElementById('log-reps').value = '';
     document.getElementById('log-dt').value = nowISO();
     renderDetail();
+    closeDetail();
   }
 
   function delLog(idx) {
@@ -671,7 +865,19 @@
   }
 
   renderGoals();
-  checkAlarms();
+
+  // Register a minimal service worker so Android Chrome shows "Add to Home Screen" banner
+  // and the app launches in standalone (no URL bar) mode
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+      self.addEventListener('install', e => self.skipWaiting());
+      self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+      self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response(''))));
+    `;
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    const swURL = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swURL).catch(() => {});
+  }
 </script>
 </body>
 </html>
