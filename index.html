@@ -522,8 +522,14 @@
 <body>
 <div class="app-shell">
 
+  <!-- Loading Screen -->
+  <div class="auth-screen" id="loading-screen" style="background:var(--bg);z-index:300;">
+    <div class="auth-logo">🎯</div>
+    <div style="font-size:14px;color:var(--text-secondary);margin-top:16px;">Loading...</div>
+  </div>
+
   <!-- Auth Screen -->
-  <div class="auth-screen" id="auth-screen">
+  <div class="auth-screen hidden" id="auth-screen">
     <div class="auth-logo">🎯</div>
     <div class="auth-title">Goal Hub</div>
     <div class="auth-sub">Track your goals across all devices.<br>Sign in to sync your data.</div>
@@ -1975,13 +1981,21 @@
 
   // ── Auth state observer ───────────────────────────────────────
   // Handle redirect result after returning from Google sign-in
-  auth.getRedirectResult().catch(err => {
-    if (err.code !== 'auth/no-current-user') {
-      console.error('Redirect error:', err);
+  auth.getRedirectResult().then(result => {
+    if (result && result.user) {
+      // Redirect sign-in successful - onAuthStateChanged will fire automatically
+      console.log('Redirect sign-in successful:', result.user.email);
+    }
+  }).catch(err => {
+    console.error('Redirect error:', err);
+    if (err.code && err.code !== 'auth/no-current-user') {
+      alert('Sign-in failed: ' + err.message);
     }
   });
 
   auth.onAuthStateChanged(user => {
+    // Hide loading screen once Firebase has resolved auth state
+    document.getElementById('loading-screen').classList.add('hidden');
     const authScreen = document.getElementById('auth-screen');
     if (user) {
       window.currentUser = user;
