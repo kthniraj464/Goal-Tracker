@@ -532,19 +532,28 @@
   <div class="auth-screen hidden" id="auth-screen">
     <div class="auth-logo">🎯</div>
     <div class="auth-title">Goal Hub</div>
-    <div class="auth-sub">Track your goals across all devices.<br>Sign in to sync your data.</div>
-    <button class="google-btn" onclick="signInWithGoogle()">
-      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c10.5 0 20-7.6 20-21 0-1.4-.1-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3c-7.6 0-14.2 4.3-17.7 11.7z"/><path fill="#FBBC05" d="M24 45c5.5 0 10.5-1.9 14.4-5l-6.7-5.5C29.7 36.1 27 37 24 37c-5.8 0-10.6-3.1-11.8-7.5l-7 5.4C8 41.1 15.4 45 24 45z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-1.1 3-3.5 5.5-6.8 7l6.7 5.5C40.6 37.1 44.5 31 44.5 24c0-1.4-.1-2.7-.5-4z"/></svg>
-      Sign in with Google
-    </button>
-    <div class="auth-loading" id="auth-loading" style="display:none;">Signing in...</div>
+    <div class="auth-sub">Enter your sync code to access your data across devices, or create a new one.</div>
+    <div style="width:100%;max-width:300px;">
+      <input id="sync-code-input" type="text" placeholder="e.g. gt_x7k2m9p4q1"
+        style="width:100%;font-size:16px;padding:13px 14px;border:0.5px solid var(--border-strong);
+        border-radius:12px;background:var(--surface);color:var(--text-primary);
+        font-family:var(--ff-body);margin-bottom:10px;box-sizing:border-box;text-align:center;letter-spacing:0.05em;">
+      <button onclick="connectSyncCode()" style="width:100%;padding:14px;background:var(--accent);
+        color:var(--surface);border:none;border-radius:14px;font-family:var(--ff-body);
+        font-size:16px;font-weight:500;cursor:pointer;margin-bottom:10px;">Connect</button>
+      <button onclick="createNewSyncCode()" style="width:100%;padding:14px;background:var(--surface-2);
+        color:var(--text-secondary);border:0.5px solid var(--border-strong);border-radius:14px;
+        font-family:var(--ff-body);font-size:15px;cursor:pointer;">Create new sync code</button>
+      <div id="auth-loading" style="display:none;text-align:center;margin-top:16px;font-size:14px;color:var(--text-secondary);">Connecting...</div>
+      <div id="auth-error" style="display:none;text-align:center;margin-top:12px;font-size:13px;color:#c0392b;"></div>
+    </div>
   </div>
 
   <div class="home-screen">
     <div class="home-header">
       <h1 id="home-title">Goals Hub</h1>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div id="user-avatar-wrap" style="display:none;" onclick="showSignOutMenu()"></div>
+        <div id="user-avatar-wrap" style="display:none;align-items:center;gap:6px;" onclick="showSyncCodeMenu()"><span id="sync-code-badge" style="font-size:11px;color:var(--text-secondary);background:var(--surface-2);border:0.5px solid var(--border-strong);border-radius:20px;padding:4px 10px;cursor:pointer;letter-spacing:0.03em;"></span></div>
       <div class="header-dots-wrap">
         <button class="header-dots-btn" onclick="toggleHeaderMenu(event)" id="header-dots-btn" aria-label="Options">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-primary)">
@@ -913,9 +922,8 @@
     </div>
   </div>
 
-<!-- Firebase -->
+<!-- Firebase (Firestore only — no auth needed) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
@@ -930,9 +938,8 @@
     measurementId: "G-J9FC1GXTPD"
   };
   firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
   window.db = firebase.firestore();
-  window.currentUser = null;
+  window.syncCode = null;
   let firestoreUnsubscribe = null;
 
   let goals = JSON.parse(localStorage.getItem('gt-goals') || '[]');
@@ -942,9 +949,9 @@
   let currentSort = localStorage.getItem('gt-sort') || 'manual';
 
   function syncToFirestore() {
-    if (!window.currentUser || !window.db) return;
+    if (!window.syncCode || !window.db) return;
     try {
-      window.db.collection('users').doc(window.currentUser.uid).set({
+      getSyncDoc().set({
         goals, categories,
         sort: currentSort,
         catSort,
@@ -1912,53 +1919,93 @@
 
 
 
-  // ── Auth ──────────────────────────────────────────────────────
-  function signInWithGoogle() {
+  // ── Sync-code auth (no Google sign-in required) ─────────────
+  // Each user gets a random sync code stored in localStorage.
+  // The same code on any device syncs to the same Firestore doc.
+
+  function generateSyncCode() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let code = 'gt_';
+    for (let i = 0; i < 10; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  }
+
+  function createNewSyncCode() {
+    const code = generateSyncCode();
+    document.getElementById('sync-code-input').value = code;
+    connectWithCode(code, true);
+  }
+
+  function connectSyncCode() {
+    const code = document.getElementById('sync-code-input').value.trim().toLowerCase();
+    if (!code) { showAuthError('Please enter a sync code.'); return; }
+    if (code.length < 5) { showAuthError('Code too short.'); return; }
+    connectWithCode(code, false);
+  }
+
+  function showAuthError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg; el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 3000);
+  }
+
+  function connectWithCode(code, isNew) {
     document.getElementById('auth-loading').style.display = 'block';
-    const provider = new firebase.auth.GoogleAuthProvider();
-    // Use redirect on mobile (more reliable), popup on desktop
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      auth.signInWithRedirect(provider).catch(err => {
+    document.getElementById('auth-error').style.display = 'none';
+    localStorage.setItem('gt-sync-code', code);
+    window.syncCode = code;
+    if (isNew) {
+      // Write initial doc so the code "exists"
+      getSyncDoc().set({
+        goals, categories,
+        sort: currentSort, catSort,
+        theme: currentTheme,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).then(() => {
         document.getElementById('auth-loading').style.display = 'none';
-        alert('Sign-in failed: ' + err.message);
+        enterApp(code);
+      }).catch(err => {
+        document.getElementById('auth-loading').style.display = 'none';
+        showAuthError('Could not create: ' + err.message);
       });
     } else {
-      auth.signInWithPopup(provider).catch(err => {
-        document.getElementById('auth-loading').style.display = 'none';
-        alert('Sign-in failed: ' + err.message);
-      });
+      // Just connect — startSync will pull data
+      document.getElementById('auth-loading').style.display = 'none';
+      enterApp(code);
     }
   }
 
-  function showSignOutMenu() {
-    if (confirm('Sign out of Goal Hub?')) {
-      if (firestoreUnsubscribe) firestoreUnsubscribe();
-      auth.signOut();
-    }
-  }
-
-  function updateAvatarUI(user) {
+  function enterApp(code) {
+    document.getElementById('loading-screen').classList.add('hidden');
+    document.getElementById('auth-screen').classList.add('hidden');
     const wrap = document.getElementById('user-avatar-wrap');
-    if (!user) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
     wrap.style.display = 'flex';
-    wrap.style.alignItems = 'center';
-    if (user.photoURL) {
-      wrap.innerHTML = `<img class="user-avatar" src="${user.photoURL}" title="${user.displayName || user.email}" alt="avatar">`;
-    } else {
-      const initials = (user.displayName || user.email || '?')[0].toUpperCase();
-      wrap.innerHTML = `<div class="user-avatar-placeholder" title="${user.email}">${initials}</div>`;
+    const badge = document.getElementById('sync-code-badge');
+    if (badge) badge.textContent = '🔗 ' + code;
+    startSync();
+  }
+
+  function showSyncCodeMenu() {
+    const code = window.syncCode || localStorage.getItem('gt-sync-code') || '';
+    const msg = 'Your sync code:\n\n' + code + '\n\nEnter this on any device to sync your data.\n\nTap OK to copy it, or Cancel to disconnect.';
+    if (confirm(msg)) {
+      navigator.clipboard && navigator.clipboard.writeText(code).catch(() => {});
+    } else if (confirm('Disconnect this device? (Your data stays in the cloud)')) {
+      localStorage.removeItem('gt-sync-code');
+      if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
+      document.getElementById('user-avatar-wrap').style.display = 'none';
+      document.getElementById('auth-screen').classList.remove('hidden');
     }
   }
 
   // ── Firestore sync ────────────────────────────────────────────
-  function getUserDoc(user) {
-    return window.db.collection('users').doc(user.uid);
+  function getSyncDoc() {
+    return window.db.collection('sync').doc(window.syncCode);
   }
 
-  function startSync(user) {
+  function startSync() {
     if (firestoreUnsubscribe) firestoreUnsubscribe();
-    firestoreUnsubscribe = getUserDoc(user).onSnapshot(doc => {
+    firestoreUnsubscribe = getSyncDoc().onSnapshot(doc => {
       if (doc.exists) {
         const data = doc.data();
         goals = data.goals || [];
@@ -1975,46 +2022,15 @@
     }, err => console.error('Firestore sync error:', err));
   }
 
-
-
-
-
-  // ── Auth state observer ───────────────────────────────────────
-  // Handle redirect result after returning from Google sign-in
-  auth.getRedirectResult().then(result => {
-    if (result && result.user) {
-      // Redirect sign-in successful - onAuthStateChanged will fire automatically
-      console.log('Redirect sign-in successful:', result.user.email);
-    }
-  }).catch(err => {
-    console.error('Redirect error:', err);
-    if (err.code && err.code !== 'auth/no-current-user') {
-      alert('Sign-in failed: ' + err.message);
-    }
-  });
-
-  auth.onAuthStateChanged(user => {
-    // Hide loading screen once Firebase has resolved auth state
+  // ── Startup ───────────────────────────────────────────────────
+  const savedCode = localStorage.getItem('gt-sync-code');
+  if (savedCode) {
+    window.syncCode = savedCode;
+    enterApp(savedCode);
+  } else {
     document.getElementById('loading-screen').classList.add('hidden');
-    const authScreen = document.getElementById('auth-screen');
-    if (user) {
-      window.currentUser = user;
-      authScreen.classList.add('hidden');
-      updateAvatarUI(user);
-      // Migrate any existing localStorage data to Firestore on first login
-      getUserDoc(user).get().then(doc => {
-        if (!doc.exists && (goals.length || categories.length)) {
-          syncToFirestore();
-        }
-        startSync(user);
-      });
-    } else {
-      window.currentUser = null;
-      authScreen.classList.remove('hidden');
-      updateAvatarUI(null);
-      if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
-    }
-  });
+    document.getElementById('auth-screen').classList.remove('hidden');
+  }
 
   renderGoals();
   renderCategories();
