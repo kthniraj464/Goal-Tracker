@@ -1916,19 +1916,24 @@
   function signInWithGoogle() {
     document.getElementById('auth-loading').style.display = 'block';
     const provider = new firebase.auth.GoogleAuthProvider();
-    // Use redirect on mobile (more reliable), popup on desktop
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      auth.signInWithRedirect(provider).catch(err => {
+    // Always use popup. signInWithRedirect causes a sign-in loop on mobile:
+    // after Google redirects back, the app reloads, onAuthStateChanged fires
+    // before getRedirectResult resolves, sees no user, and shows sign-in again.
+    // Popup avoids the full page reload and works reliably on modern mobile browsers.
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      .then(() => auth.signInWithPopup(provider))
+      .then(() => {
         document.getElementById('auth-loading').style.display = 'none';
-        alert('Sign-in failed: ' + err.message);
-      });
-    } else {
-      auth.signInWithPopup(provider).catch(err => {
+      })
+      .catch(err => {
         document.getElementById('auth-loading').style.display = 'none';
-        alert('Sign-in failed: ' + err.message);
+        if (err.code === 'auth/popup-blocked') {
+          // Last resort: if popup is hard-blocked, try redirect
+          auth.signInWithRedirect(provider).catch(e => alert('Sign-in failed: ' + e.message));
+        } else if (err.code !== 'auth/popup-closed-by-user') {
+          alert('Sign-in failed: ' + err.message);
+        }
       });
-    }
   }
 
   function showSignOutMenu() {
@@ -1980,48 +1985,27 @@
 
 
   // ── Auth state observer ───────────────────────────────────────
-  // On mobile, signInWithRedirect sends the user to Google and back.
-  // We MUST wait for getRedirectResult() to fully resolve before we
-  // start listening with onAuthStateChanged — otherwise the auth state
-  // observer fires before Firebase has processed the redirect token,
-  // sees no user, and shows the sign-in screen again (the loop bug).
-  auth.getRedirectResult().then(result => {
-    if (result && result.user) {
-      console.log('Redirect sign-in successful:', result.user.email);
+  // No need to call getRedirectResult() anymore — we switched to signInWithPopup
+  // which doesn't do a full page reload, so there's no redirect token to process.
+  auth.onAuthStateChanged(user => {
+    document.getElementById('loading-screen').classList.add('hidden');
+    const authScreen = document.getElementById('auth-screen');
+    if (user) {
+      window.currentUser = user;
+      authScreen.classList.add('hidden');
+      updateAvatarUI(user);
+      getUserDoc(user).get().then(doc => {
+        if (!doc.exists && (goals.length || categories.length)) {
+          syncToFirestore();
+        }
+        startSync(user);
+      });
+    } else {
+      window.currentUser = null;
+      authScreen.classList.remove('hidden');
+      updateAvatarUI(null);
+      if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
     }
-  }).catch(err => {
-    console.error('Redirect error:', err);
-    // Ignore the benign "no redirect operation pending" error
-    if (err.code && err.code !== 'auth/no-current-user' && err.code !== 'auth/null-user') {
-      document.getElementById('auth-loading').style.display = 'none';
-      alert('Sign-in failed: ' + err.message);
-    }
-  }).finally(() => {
-    // Only register the auth observer AFTER redirect result is handled.
-    // This prevents the race condition that causes the sign-in loop on mobile.
-    auth.onAuthStateChanged(user => {
-      document.getElementById('loading-screen').classList.add('hidden');
-      const authScreen = document.getElementById('auth-screen');
-      if (user) {
-        window.currentUser = user;
-        authScreen.classList.add('hidden');
-        document.getElementById('auth-loading').style.display = 'none';
-        updateAvatarUI(user);
-        // Migrate any existing localStorage data to Firestore on first login
-        getUserDoc(user).get().then(doc => {
-          if (!doc.exists && (goals.length || categories.length)) {
-            syncToFirestore();
-          }
-          startSync(user);
-        });
-      } else {
-        window.currentUser = null;
-        authScreen.classList.remove('hidden');
-        document.getElementById('auth-loading').style.display = 'none';
-        updateAvatarUI(null);
-        if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
-      }
-    });
   });
 
   renderGoals();
