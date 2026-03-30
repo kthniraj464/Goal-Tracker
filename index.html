@@ -446,13 +446,11 @@
     .cat-card-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.4s; }
     /* Category detail screen */
     .cat-detail-screen {
-      position: fixed; inset: 0; background: var(--bg);
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg);
       display: flex; flex-direction: column; overflow: hidden;
       transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
-      z-index: 6; max-width: 430px; left: 50%; margin-left: -215px;
-    }
-    @media (max-width: 430px) {
-      .cat-detail-screen { left: 0; margin-left: 0; max-width: 100%; }
+      z-index: 50;
     }
     .cat-detail-screen.show { transform: translateX(0); }
     .cat-detail-header {
@@ -2041,7 +2039,13 @@
     const swCode = `
       self.addEventListener('install', e => self.skipWaiting());
       self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-      self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response(''))));
+      self.addEventListener('fetch', e => {
+        // Network-first: always try network, fall back to cache
+        // This ensures updates to the HTML file are picked up immediately
+        e.respondWith(
+          fetch(e.request).catch(() => new Response(''))
+        );
+      });
     `;
     const swBlob = new Blob([swCode], { type: 'application/javascript' });
     const swURL = URL.createObjectURL(swBlob);
