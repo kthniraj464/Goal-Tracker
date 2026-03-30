@@ -1049,14 +1049,12 @@
     const cat = categories.find(c => c.id === catId);
     if (!cat) return;
     document.getElementById('cat-detail-title').textContent = cat.emoji + ' ' + cat.name;
-    document.getElementById('home-title').style.visibility = 'hidden';
     renderCatGoals(catId);
     document.getElementById('cat-detail-screen').classList.add('show');
   }
 
   function closeCatDetail() {
     document.getElementById('cat-detail-screen').classList.remove('show');
-    document.getElementById('home-title').style.visibility = 'visible';
     activeCatId = null;
     renderCategories();
   }
