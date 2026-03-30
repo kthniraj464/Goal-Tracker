@@ -57,7 +57,7 @@
     .home-header {
       padding: 10px 20px 18px; display: flex;
       justify-content: space-between; align-items: center; flex-shrink: 0;
-      overflow: hidden; gap: 8px;
+      gap: 8px; position: relative; z-index: 10;
     }
     .home-header h1 {
       font-family: var(--ff-display); font-size: 28px;
@@ -86,7 +86,7 @@
     .header-dots-menu {
       position: absolute; top: 44px; right: 0;
       background: var(--surface); border: 0.5px solid var(--border-strong);
-      border-radius: 14px; min-width: 200px; z-index: 100;
+      border-radius: 14px; min-width: 200px; z-index: 200;
       box-shadow: 0 8px 24px rgba(0,0,0,0.15);
       overflow: hidden; display: none;
     }
@@ -835,23 +835,22 @@
       <div class="sheet-title">Edit goal</div>
       <div class="field">
         <label>Category</label>
-        <div class="cat-select-pills" id="eg-cat-pills"></div>
+        <select id="eg-cat-select" style="width:100%;font-size:16px;padding:13px 14px;border:0.5px solid var(--border-strong);border-radius:12px;background:var(--surface-2);color:var(--text-primary);font-family:var(--ff-body);appearance:none;-webkit-appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888780' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;"></select>
       </div>
       <div class="field">
         <label>Goal</label>
         <input type="text" id="eg-name" placeholder="e.g. 10,000 Push-ups">
       </div>
       <div class="field">
-        <label>Target</label>
-        <input type="number" id="eg-target" min="1" inputmode="numeric">
-      </div>
-      <div class="field">
-        <label>Unit</label>
-        <div class="unit-pills" id="eg-unit-pills">
-          <button class="unit-pill" onclick="selectEditUnit(this,'Reps')">Reps</button>
-          <button class="unit-pill" onclick="selectEditUnit(this,'Days')">Days</button>
-          <button class="unit-pill" onclick="selectEditUnit(this,'Hours')">Hours</button>
-          <button class="unit-pill" onclick="selectEditUnit(this,'Mins')">Mins</button>
+        <label>Target &amp; Unit</label>
+        <div style="display:flex;gap:10px;">
+          <input type="number" id="eg-target" min="1" inputmode="numeric" placeholder="e.g. 10000" style="flex:1;margin:0;">
+          <select id="eg-unit-select" onchange="selectedEditUnit=this.value" style="width:110px;font-size:16px;padding:13px 14px;border:0.5px solid var(--border-strong);border-radius:12px;background:var(--surface-2);color:var(--text-primary);font-family:var(--ff-body);appearance:none;-webkit-appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888780' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;flex-shrink:0;">
+            <option value="Reps">Reps</option>
+            <option value="Days">Days</option>
+            <option value="Hours">Hours</option>
+            <option value="Mins">Mins</option>
+          </select>
         </div>
       </div>
       <div class="field">
@@ -1347,32 +1346,23 @@
     document.getElementById('eg-target').value = g.target;
     document.getElementById('eg-deadline').value = g.deadline || '';
     selectedEditUnit = g.unit || 'Reps';
-    document.querySelectorAll('#eg-unit-pills .unit-pill').forEach(p => {
-      p.classList.toggle('active', p.textContent === selectedEditUnit);
-    });
-    // Populate category pills
+    // Populate unit select
+    const unitSel = document.getElementById('eg-unit-select');
+    if (unitSel) unitSel.value = selectedEditUnit;
+    // Populate category select
+    const catSel = document.getElementById('eg-cat-select');
+    if (catSel) {
+      catSel.innerHTML = '<option value="">None</option>' +
+        categories.map(c => `<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('');
+      catSel.value = g.catId || '';
+    }
     selectedCatId = g.catId || null;
-    const catEl = document.getElementById('eg-cat-pills');
-    catEl.innerHTML = `<button class="cat-select-pill ${!selectedCatId?'active':''}" onclick="selectEditCatPill(this,null)">None</button>` +
-      categories.map(c => `<button class="cat-select-pill ${selectedCatId===c.id?'active':''}" onclick="selectEditCatPill(this,'${c.id}')">${c.emoji} ${c.name}</button>`).join('');
     populateAlarmForm('eg', g.alarm || null);
     document.getElementById('edit-sheet').classList.add('show');
   }
 
-  function selectEditCatPill(el, catId) {
-    selectedCatId = catId;
-    document.querySelectorAll('#eg-cat-pills .cat-select-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-  }
-
   function closeEditSheet() {
     document.getElementById('edit-sheet').classList.remove('show');
-  }
-
-  function selectEditUnit(el, unit) {
-    selectedEditUnit = unit;
-    document.querySelectorAll('#eg-unit-pills .unit-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
   }
 
   function saveEditGoal() {
@@ -1381,9 +1371,11 @@
     const g = goals.find(x => x.id === activeId); if (!g) return;
     g.name = name;
     g.target = parseInt(document.getElementById('eg-target').value) || g.target;
-    g.unit = selectedEditUnit;
+    const unitSel = document.getElementById('eg-unit-select');
+    g.unit = unitSel ? unitSel.value : selectedEditUnit;
     g.deadline = document.getElementById('eg-deadline').value || null;
-    g.catId = selectedCatId || null;
+    const catSel = document.getElementById('eg-cat-select');
+    g.catId = catSel && catSel.value ? catSel.value : null;
     g.alarm = getAlarmFromForm('eg', egSound);
     save(); renderDetail(); closeEditSheet();
     if (g.alarm) { requestNotificationPermission(); scheduleAlarms(); }
