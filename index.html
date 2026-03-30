@@ -1910,10 +1910,19 @@
   function signInWithGoogle() {
     document.getElementById('auth-loading').style.display = 'block';
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(err => {
-      document.getElementById('auth-loading').style.display = 'none';
-      alert('Sign-in failed: ' + err.message);
-    });
+    // Use redirect on mobile (more reliable), popup on desktop
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      auth.signInWithRedirect(provider).catch(err => {
+        document.getElementById('auth-loading').style.display = 'none';
+        alert('Sign-in failed: ' + err.message);
+      });
+    } else {
+      auth.signInWithPopup(provider).catch(err => {
+        document.getElementById('auth-loading').style.display = 'none';
+        alert('Sign-in failed: ' + err.message);
+      });
+    }
   }
 
   function showSignOutMenu() {
@@ -1965,6 +1974,13 @@
 
 
   // ── Auth state observer ───────────────────────────────────────
+  // Handle redirect result after returning from Google sign-in
+  auth.getRedirectResult().catch(err => {
+    if (err.code !== 'auth/no-current-user') {
+      console.error('Redirect error:', err);
+    }
+  });
+
   auth.onAuthStateChanged(user => {
     const authScreen = document.getElementById('auth-screen');
     if (user) {
