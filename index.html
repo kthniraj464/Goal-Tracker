@@ -1916,24 +1916,19 @@
   function signInWithGoogle() {
     document.getElementById('auth-loading').style.display = 'block';
     const provider = new firebase.auth.GoogleAuthProvider();
-    // Always use popup. signInWithRedirect causes a sign-in loop on mobile:
-    // after Google redirects back, the app reloads, onAuthStateChanged fires
-    // before getRedirectResult resolves, sees no user, and shows sign-in again.
-    // Popup avoids the full page reload and works reliably on modern mobile browsers.
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-      .then(() => auth.signInWithPopup(provider))
-      .then(() => {
+    // Use redirect on mobile (more reliable), popup on desktop
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      auth.signInWithRedirect(provider).catch(err => {
         document.getElementById('auth-loading').style.display = 'none';
-      })
-      .catch(err => {
-        document.getElementById('auth-loading').style.display = 'none';
-        if (err.code === 'auth/popup-blocked') {
-          // Last resort: if popup is hard-blocked, try redirect
-          auth.signInWithRedirect(provider).catch(e => alert('Sign-in failed: ' + e.message));
-        } else if (err.code !== 'auth/popup-closed-by-user') {
-          alert('Sign-in failed: ' + err.message);
-        }
+        alert('Sign-in failed: ' + err.message);
       });
+    } else {
+      auth.signInWithPopup(provider).catch(err => {
+        document.getElementById('auth-loading').style.display = 'none';
+        alert('Sign-in failed: ' + err.message);
+      });
+    }
   }
 
   function showSignOutMenu() {
@@ -1985,15 +1980,28 @@
 
 
   // ── Auth state observer ───────────────────────────────────────
-  // No need to call getRedirectResult() anymore — we switched to signInWithPopup
-  // which doesn't do a full page reload, so there's no redirect token to process.
+  // Handle redirect result after returning from Google sign-in
+  auth.getRedirectResult().then(result => {
+    if (result && result.user) {
+      // Redirect sign-in successful - onAuthStateChanged will fire automatically
+      console.log('Redirect sign-in successful:', result.user.email);
+    }
+  }).catch(err => {
+    console.error('Redirect error:', err);
+    if (err.code && err.code !== 'auth/no-current-user') {
+      alert('Sign-in failed: ' + err.message);
+    }
+  });
+
   auth.onAuthStateChanged(user => {
+    // Hide loading screen once Firebase has resolved auth state
     document.getElementById('loading-screen').classList.add('hidden');
     const authScreen = document.getElementById('auth-screen');
     if (user) {
       window.currentUser = user;
       authScreen.classList.add('hidden');
       updateAvatarUI(user);
+      // Migrate any existing localStorage data to Firestore on first login
       getUserDoc(user).get().then(doc => {
         if (!doc.exists && (goals.length || categories.length)) {
           syncToFirestore();
