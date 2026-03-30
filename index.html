@@ -404,7 +404,82 @@
       background: var(--surface-2); color: var(--text-secondary);
       cursor: pointer; transition: background 0.15s, color 0.15s;
     }
-    .clock-mode-btn.active { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+    /* ── Category grid ── */
+    .view-toggle {
+      display: flex; gap: 4px; background: var(--surface-2);
+      border-radius: 20px; padding: 3px; margin: 0 20px 16px;
+    }
+    .view-tab {
+      flex: 1; padding: 7px 0; text-align: center; font-size: 14px;
+      font-weight: 500; font-family: var(--ff-body); border: none;
+      border-radius: 16px; cursor: pointer; transition: background 0.15s, color 0.15s;
+      background: none; color: var(--text-secondary);
+    }
+    .view-tab.active { background: var(--surface); color: var(--text-primary); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .cat-grid {
+      flex: 1; overflow-y: auto; padding: 0 12px 120px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      align-content: start; -webkit-overflow-scrolling: touch;
+    }
+    .cat-grid::-webkit-scrollbar { display: none; }
+    .cat-card {
+      background: var(--surface); border: 0.5px solid var(--border);
+      border-radius: 18px; padding: 16px; cursor: pointer;
+      transition: transform 0.1s; -webkit-user-select: none; user-select: none;
+      min-height: 120px; display: flex; flex-direction: column; justify-content: space-between;
+      position: relative; overflow: hidden; outline: none;
+    }
+    .cat-card:active { transform: scale(0.97); }
+    .cat-card-emoji { font-size: 28px; margin-bottom: 8px; }
+    .cat-card-name {
+      font-family: var(--ff-display); font-size: 16px; font-weight: 400;
+      color: var(--text-primary); line-height: 1.2; margin-bottom: 4px;
+    }
+    .cat-card-count { font-size: 11px; color: var(--text-secondary); }
+    .cat-card-bar {
+      height: 3px; background: var(--surface-2); border-radius: 2px;
+      margin-top: 10px; overflow: hidden;
+    }
+    .cat-card-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.4s; }
+    /* Category detail screen */
+    .cat-detail-screen {
+      position: absolute; inset: 0; background: var(--bg);
+      display: flex; flex-direction: column; overflow: hidden;
+      transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+      z-index: 2;
+    }
+    .cat-detail-screen.show { transform: translateX(0); }
+    .cat-detail-header {
+      padding: 14px 20px 10px; display: flex;
+      align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .back-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none;
+      background: var(--surface-2); display: flex; align-items: center;
+      justify-content: center; cursor: pointer; flex-shrink: 0;
+    }
+    .back-btn:active { opacity: 0.7; }
+    .cat-detail-title {
+      font-family: var(--ff-display); font-size: 24px; font-weight: 400;
+      color: var(--text-primary); flex: 1;
+    }
+
+    /* Uncategorized pill in new goal */
+    .cat-edit-btn {
+      width: 28px; height: 28px; border-radius: 50%; border: none;
+      background: var(--surface-2); display: flex; align-items: center;
+      justify-content: center; cursor: pointer; flex-shrink: 0;
+      color: var(--text-secondary); transition: background 0.15s; outline: none;
+    }
+    .cat-edit-btn:active { background: var(--border-strong); }
+    .cat-select-pill {
+      padding: 8px 14px; font-size: 13px; font-weight: 500;
+      font-family: var(--ff-body); border: 0.5px solid var(--border-strong);
+      border-radius: 20px; background: var(--surface-2); color: var(--text-secondary);
+      cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .cat-select-pill.active { background: var(--accent); color: var(--surface); border-color: var(--accent); }
   </style>
 </head>
 <body>
@@ -412,7 +487,7 @@
 
   <div class="home-screen">
     <div class="home-header">
-      <h1>My Goals</h1>
+      <h1 id="home-title">Goals Hub</h1>
       <div class="header-dots-wrap">
         <button class="header-dots-btn" onclick="toggleHeaderMenu(event)" id="header-dots-btn" aria-label="Options">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-primary)">
@@ -434,10 +509,6 @@
             Sort by Last Modified
           </div>
           <div class="hm-label" style="margin-top:6px; border-top: 0.5px solid var(--border); padding-top:10px;">Appearance</div>
-          <div class="hm-item" id="theme-system" onclick="setTheme('system')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-            System Default
-          </div>
           <div class="hm-item" id="theme-light" onclick="setTheme('light')">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             Light
@@ -449,11 +520,46 @@
         </div>
       </div>
     </div>
-    <div class="goals-scroll" id="goals-scroll"></div>
+
+    <!-- Category grid -->
+    <div class="cat-grid" id="cat-grid"></div>
+
+    <!-- Category detail slide-in screen -->
+    <div class="cat-detail-screen" id="cat-detail-screen">
+      <div class="cat-detail-header">
+        <button class="back-btn" onclick="closeCatDetail()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="cat-detail-title" id="cat-detail-title"></div>
+        <div class="header-dots-wrap">
+          <button class="header-dots-btn" onclick="toggleCatSortMenu(event)" id="cat-sort-btn" aria-label="Sort">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-primary)">
+              <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+            </svg>
+          </button>
+          <div class="header-dots-menu" id="cat-sort-menu">
+            <div class="hm-label">Sort</div>
+            <div class="hm-item" id="csort-name" onclick="setCatSort('name')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              Sort by Name
+            </div>
+            <div class="hm-item" id="csort-created" onclick="setCatSort('created')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Sort by Date Created
+            </div>
+            <div class="hm-item" id="csort-modified" onclick="setCatSort('modified')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Sort by Last Modified
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="goals-scroll" id="cat-goals-scroll"></div>
+    </div>
   </div>
 
   <!-- Bottom FAB -->
-  <button class="fab" onclick="openNewSheet()" aria-label="New goal">
+  <button class="fab" onclick="handleFab()" aria-label="New">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
       <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
     </svg>
@@ -461,26 +567,85 @@
 
   <div class="sheet-bg" id="sheet-bg" onclick="closeBothSheets()"></div>
 
-  <!-- New Goal Sheet -->
+  <!-- New Category Sheet -->
+  <div class="sheet" id="new-cat-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-inner">
+      <div class="sheet-title">New category</div>
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="nc-name" placeholder="e.g. Fitness">
+      </div>
+      <div class="field">
+        <label>Emoji</label>
+        <div class="unit-pills" style="flex-wrap:wrap;gap:8px;" id="nc-emoji-pills">
+          <button class="unit-pill active" onclick="selectEmoji(this,'💪')">💪</button>
+          <button class="unit-pill" onclick="selectEmoji(this,'📚')">📚</button>
+          <button class="unit-pill" onclick="selectEmoji(this,'💰')">💰</button>
+          <button class="unit-pill" onclick="selectEmoji(this,'🏃')">🏃</button>
+          <button class="unit-pill" onclick="selectEmoji(this,'🧠')">🧠</button>
+          <button class="unit-pill" onclick="selectEmoji(this,'🎯')">🎯</button>
+          <button class="unit-pill" onclick="selectEmoji(this,'🌱')">🌱</button>
+          <button class="unit-pill" onclick="selectEmoji(this,'❤️')">❤️</button>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-sec" onclick="closeNewCatSheet()">Cancel</button>
+        <button class="btn-pri" onclick="saveCategory()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Category Sheet -->
+  <div class="sheet" id="edit-cat-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-inner">
+      <div class="sheet-title">Edit category</div>
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="ec-name" placeholder="e.g. Fitness">
+      </div>
+      <div class="field">
+        <label>Emoji</label>
+        <div class="unit-pills" style="flex-wrap:wrap;gap:8px;" id="ec-emoji-pills">
+          <button class="unit-pill" onclick="selectEditEmoji(this,'💪')">💪</button>
+          <button class="unit-pill" onclick="selectEditEmoji(this,'📚')">📚</button>
+          <button class="unit-pill" onclick="selectEditEmoji(this,'💰')">💰</button>
+          <button class="unit-pill" onclick="selectEditEmoji(this,'🏃')">🏃</button>
+          <button class="unit-pill" onclick="selectEditEmoji(this,'🧠')">🧠</button>
+          <button class="unit-pill" onclick="selectEditEmoji(this,'🎯')">🎯</button>
+          <button class="unit-pill" onclick="selectEditEmoji(this,'🌱')">🌱</button>
+          <button class="unit-pill" onclick="selectEditEmoji(this,'❤️')">❤️</button>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-sec" style="color:#c0392b;" onclick="deleteCat()">Delete</button>
+        <button class="btn-pri" onclick="saveEditCat()">Save</button>
+      </div>
+    </div>
+  </div>
   <div class="sheet" id="new-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-inner">
       <div class="sheet-title">New goal</div>
       <div class="field">
+        <label>Category</label>
+        <select id="ng-cat-select" style="width:100%;font-size:16px;padding:13px 14px;border:0.5px solid var(--border-strong);border-radius:12px;background:var(--surface-2);color:var(--text-primary);font-family:var(--ff-body);appearance:none;-webkit-appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888780' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;"></select>
+      </div>
+      <div class="field">
         <label>Goal</label>
         <input type="text" id="ng-name" placeholder="e.g. 10,000 Push-ups">
       </div>
       <div class="field">
-        <label>Target</label>
-        <input type="number" id="ng-target" min="1" inputmode="numeric" placeholder="e.g. 10000">
-      </div>
-      <div class="field">
-        <label>Unit</label>
-        <div class="unit-pills">
-          <button class="unit-pill active" onclick="selectUnit(this,'Reps')">Reps</button>
-          <button class="unit-pill" onclick="selectUnit(this,'Days')">Days</button>
-          <button class="unit-pill" onclick="selectUnit(this,'Hours')">Hours</button>
-          <button class="unit-pill" onclick="selectUnit(this,'Mins')">Mins</button>
+        <label>Target &amp; Unit</label>
+        <div style="display:flex;gap:10px;">
+          <input type="number" id="ng-target" min="1" inputmode="numeric" placeholder="e.g. 10000" style="flex:1;margin:0;">
+          <select id="ng-unit-select" onchange="selectedUnit=this.value" style="width:110px;font-size:16px;padding:13px 14px;border:0.5px solid var(--border-strong);border-radius:12px;background:var(--surface-2);color:var(--text-primary);font-family:var(--ff-body);appearance:none;-webkit-appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888780' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;flex-shrink:0;">
+            <option value="Reps">Reps</option>
+            <option value="Days">Days</option>
+            <option value="Hours">Hours</option>
+            <option value="Mins">Mins</option>
+          </select>
         </div>
       </div>
       <div class="field">
@@ -600,6 +765,10 @@
     <div class="sheet-inner">
       <div class="sheet-title">Edit goal</div>
       <div class="field">
+        <label>Category</label>
+        <div class="cat-select-pills" id="eg-cat-pills"></div>
+      </div>
+      <div class="field">
         <label>Goal</label>
         <input type="text" id="eg-name" placeholder="e.g. 10,000 Push-ups">
       </div>
@@ -697,6 +866,221 @@
   function save() { localStorage.setItem('gt-goals', JSON.stringify(goals)); }
   function saveSort() { localStorage.setItem('gt-sort', currentSort); }
 
+  // ── Categories ────────────────────────────────────────────────
+  let categories = JSON.parse(localStorage.getItem('gt-cats') || '[]');
+  let activeCatId = null; // which category is open in detail screen
+  let currentView = 'cat'; // 'cat' or 'all'
+  let selectedCatId = null; // selected in new goal form
+  let selectedEmoji = '💪';
+
+  function saveCats() { localStorage.setItem('gt-cats', JSON.stringify(categories)); }
+
+  function toggleCatSortMenu(e) {
+    e.stopPropagation();
+    document.getElementById('cat-sort-menu').classList.toggle('open');
+    updateCatSortUI();
+  }
+
+  let catSort = 'manual';
+
+  function updateCatSortUI() {
+    ['name','created','modified'].forEach(s => {
+      const el = document.getElementById('csort-' + s);
+      if (el) el.classList.toggle('active-sort', catSort === s);
+    });
+  }
+
+  function setCatSort(type) {
+    catSort = type;
+    document.getElementById('cat-sort-menu').classList.remove('open');
+    updateCatSortUI();
+    if (activeCatId) renderCatGoals(activeCatId);
+  }
+
+  function getSortedCatGoals(catGoals) {
+    const arr = [...catGoals];
+    if (catSort === 'name') arr.sort((a,b) => a.name.localeCompare(b.name));
+    else if (catSort === 'created') arr.sort((a,b) => a.id - b.id);
+    else if (catSort === 'modified') arr.sort((a,b) => {
+      const la = a.logs.length ? a.logs[a.logs.length-1].ts : a.id;
+      const lb = b.logs.length ? b.logs[b.logs.length-1].ts : b.id;
+      return lb - la;
+    });
+    return arr;
+  }
+  function switchView(view) {
+    currentView = view;
+    if (view === 'cat') renderCategories(); else renderGoals();
+  }
+
+  function renderCategories() {
+    const el = document.getElementById('cat-grid');
+    if (!categories.length) {
+      el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-secondary);">
+        <p style="font-size:15px;line-height:1.7;">No categories yet.<br>Tap <strong style="color:var(--text-primary)">+</strong> to create one.</p>
+      </div>`; return;
+    }
+    el.innerHTML = categories.map((cat, idx) => {
+      const catGoals = goals.filter(g => g.catId === cat.id);
+      const totalPct = catGoals.length
+        ? Math.round(catGoals.reduce((s,g) => s + Math.min(100, total(g)/g.target*100), 0) / catGoals.length)
+        : 0;
+      const colorClass = 'cat-color-' + (idx % 8);
+      return `<div class="cat-card ${colorClass}" onclick="openCatDetail('${cat.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="cat-card-emoji">${cat.emoji}</div>
+          <button class="cat-edit-btn" onclick="event.stopPropagation();openEditCatSheet('${cat.id}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
+        </div>
+        <div>
+          <div class="cat-card-name">${cat.name}</div>
+          <div class="cat-card-count">${catGoals.length} goal${catGoals.length!==1?'s':''} · ${totalPct}%</div>
+        </div>
+        <div class="cat-card-bar"><div class="cat-card-bar-fill" style="width:${totalPct}%"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  function openCatDetail(catId) {
+    activeCatId = catId;
+    const cat = categories.find(c => c.id === catId);
+    if (!cat) return;
+    document.getElementById('cat-detail-title').textContent = cat.emoji + ' ' + cat.name;
+    renderCatGoals(catId);
+    document.getElementById('cat-detail-screen').classList.add('show');
+  }
+
+  function closeCatDetail() {
+    document.getElementById('cat-detail-screen').classList.remove('show');
+    activeCatId = null;
+    renderCategories();
+  }
+
+  function renderCatGoals(catId) {
+    const el = document.getElementById('cat-goals-scroll');
+    const catGoals = getSortedCatGoals(goals.filter(g => g.catId === catId));
+    if (!catGoals.length) {
+      el.innerHTML = `<div class="empty-state"><p>No goals in this category yet.<br>Tap <strong>+</strong> to add one.</p></div>`; return;
+    }
+    el.innerHTML = catGoals.map(g => {
+      const done = total(g), pct = Math.min(100, Math.round(done/g.target*100)), comp = done >= g.target;
+      const unit = g.unit || 'Reps';
+      const last = g.logs.length ? fmtDate(g.logs[g.logs.length-1].ts) : 'No sessions yet';
+      const dl = fmtDeadline(g.deadline, comp);
+      const overdue = isOverdue(g.deadline, comp);
+      return `<div class="goal-card" data-id="${g.id}" onclick="openDetail(${g.id})">
+        <div class="card-top">
+          <span class="card-exercise">${g.name}</span>
+          <span class="card-badge ${comp?'done':''}">${comp?'Done':pct+'%'}</span>
+        </div>
+        ${dl ? `<div class="card-deadline ${overdue?'overdue':''}">${dl}</div>` : ''}
+        <div class="card-nums">
+          <span class="card-cur">${done.toLocaleString()}</span>
+          <span class="card-sep">/</span>
+          <span class="card-tot">${g.target.toLocaleString()} ${unit}</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill ${comp?'done':''}" style="width:${pct}%"></div></div>
+        <div class="card-meta">Last: ${last}</div>
+        ${g.alarm ? `<div class="alarm-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${g.alarm.time}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  let editCatId = null;
+  let selectedEditEmoji = '💪';
+
+  function openEditCatSheet(catId) {
+    editCatId = catId;
+    const cat = categories.find(c => c.id === catId); if (!cat) return;
+    document.getElementById('ec-name').value = cat.name;
+    selectedEditEmoji = cat.emoji;
+    document.querySelectorAll('#ec-emoji-pills .unit-pill').forEach(p => {
+      p.classList.toggle('active', p.textContent === cat.emoji);
+    });
+    document.getElementById('sheet-bg').classList.add('show');
+    document.getElementById('edit-cat-sheet').classList.add('show');
+  }
+
+  function closeEditCatSheet() {
+    document.getElementById('edit-cat-sheet').classList.remove('show');
+    document.getElementById('sheet-bg').classList.remove('show');
+  }
+
+  function selectEditEmoji(el, emoji) {
+    selectedEditEmoji = emoji;
+    document.querySelectorAll('#ec-emoji-pills .unit-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function saveEditCat() {
+    const name = document.getElementById('ec-name').value.trim();
+    if (!name) { document.getElementById('ec-name').focus(); return; }
+    const cat = categories.find(c => c.id === editCatId); if (!cat) return;
+    cat.name = name;
+    cat.emoji = selectedEditEmoji;
+    saveCats(); closeEditCatSheet(); renderCategories(); refreshCatPills();
+  }
+
+  function deleteCat() {
+    if (!confirm('Delete this category? Goals inside will become uncategorized.')) return;
+    goals.forEach(g => { if (g.catId === editCatId) g.catId = null; });
+    categories = categories.filter(c => c.id !== editCatId);
+    save(); saveCats(); closeEditCatSheet(); renderCategories(); refreshCatPills();
+  }
+  function handleFab() {
+    if (activeCatId) openNewSheet();
+    else openNewCatSheet();
+  }
+
+  function openNewCatSheet() {
+    selectedEmoji = '💪';
+    document.querySelectorAll('#nc-emoji-pills .unit-pill').forEach((p,i) => p.classList.toggle('active', i===0));
+    document.getElementById('sheet-bg').classList.add('show');
+    document.getElementById('new-cat-sheet').classList.add('show');
+  }
+
+  function closeNewCatSheet() {
+    document.getElementById('new-cat-sheet').classList.remove('show');
+    document.getElementById('sheet-bg').classList.remove('show');
+  }
+
+  function selectEmoji(el, emoji) {
+    selectedEmoji = emoji;
+    document.querySelectorAll('#nc-emoji-pills .unit-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function saveCategory() {
+    const name = document.getElementById('nc-name').value.trim();
+    if (!name) { document.getElementById('nc-name').focus(); return; }
+    const cat = { id: 'cat-' + Date.now(), name, emoji: selectedEmoji };
+    categories.push(cat);
+    saveCats(); closeNewCatSheet(); renderCategories();
+    refreshCatPills();
+  }
+
+  function refreshCatPills() {
+    const el = document.getElementById('ng-cat-pills');
+    if (!el) return;
+    selectedCatId = activeCatId || null; // pre-select current cat if inside one
+    el.innerHTML = `<button class="cat-select-pill ${!selectedCatId?'active':''}" onclick="selectCatPill(this, null)">None</button>` +
+      categories.map(c => `<button class="cat-select-pill ${selectedCatId===c.id?'active':''}" onclick="selectCatPill(this,'${c.id}')">${c.emoji} ${c.name}</button>`).join('') +
+      `<button class="cat-select-pill" onclick="openNewCatFromGoal()" style="border-style:dashed;">+ New</button>`;
+  }
+
+  function selectCatPill(el, catId) {
+    selectedCatId = catId;
+    document.querySelectorAll('#ng-cat-pills .cat-select-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function openNewCatFromGoal() {
+    // Close new goal, open new cat, then re-open goal
+    document.getElementById('new-sheet').classList.remove('show');
+    openNewCatSheet();
+  }
+
   // --- Header dots menu ---
   document.addEventListener('click', function(e) {
     const menu = document.getElementById('header-dots-menu');
@@ -705,6 +1089,9 @@
     const dmenu = document.getElementById('dots-menu');
     const dbtn = document.getElementById('dots-btn');
     if (dmenu && dbtn && !dbtn.contains(e.target)) dmenu.classList.remove('open');
+    const cmenu = document.getElementById('cat-sort-menu');
+    const cbtn = document.getElementById('cat-sort-btn');
+    if (cmenu && cbtn && !cbtn.contains(e.target)) cmenu.classList.remove('open');
   });
 
   function toggleHeaderMenu(e) {
@@ -717,13 +1104,13 @@
     ['name','created','modified'].forEach(s => {
       document.getElementById('sort-' + s).classList.toggle('active-sort', currentSort === s);
     });
-    ['system','light','dark'].forEach(t => {
+    ['light','dark'].forEach(t => {
       document.getElementById('theme-' + t).classList.toggle('active-sort', currentTheme === t);
     });
   }
 
   // --- Theme ---
-  let currentTheme = localStorage.getItem('gt-theme') || 'system';
+  let currentTheme = localStorage.getItem('gt-theme') || 'light';
 
   function applyTheme(theme) {
     const root = document.documentElement;
@@ -766,7 +1153,8 @@
   let displayOrder = []; // tracks the current visual order of goal ids
 
   function initDrag() {
-    const scroll = document.getElementById('goals-scroll');
+    const scroll = document.getElementById('cat-goals-scroll') || document.getElementById('goals-scroll');
+    if (!scroll) return;
     const cards = scroll.querySelectorAll('.goal-card');
     // Build display order from rendered cards
     displayOrder = [...cards].map(c => parseInt(c.dataset.id));
@@ -862,8 +1250,19 @@
     document.querySelectorAll('#eg-unit-pills .unit-pill').forEach(p => {
       p.classList.toggle('active', p.textContent === selectedEditUnit);
     });
+    // Populate category pills
+    selectedCatId = g.catId || null;
+    const catEl = document.getElementById('eg-cat-pills');
+    catEl.innerHTML = `<button class="cat-select-pill ${!selectedCatId?'active':''}" onclick="selectEditCatPill(this,null)">None</button>` +
+      categories.map(c => `<button class="cat-select-pill ${selectedCatId===c.id?'active':''}" onclick="selectEditCatPill(this,'${c.id}')">${c.emoji} ${c.name}</button>`).join('');
     populateAlarmForm('eg', g.alarm || null);
     document.getElementById('edit-sheet').classList.add('show');
+  }
+
+  function selectEditCatPill(el, catId) {
+    selectedCatId = catId;
+    document.querySelectorAll('#eg-cat-pills .cat-select-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
   }
 
   function closeEditSheet() {
@@ -884,6 +1283,7 @@
     g.target = parseInt(document.getElementById('eg-target').value) || g.target;
     g.unit = selectedEditUnit;
     g.deadline = document.getElementById('eg-deadline').value || null;
+    g.catId = selectedCatId || null;
     g.alarm = getAlarmFromForm('eg', egSound);
     save(); renderDetail(); closeEditSheet();
     if (g.alarm) { requestNotificationPermission(); scheduleAlarms(); }
@@ -914,7 +1314,14 @@
 
   function openNewSheet() {
     selectedUnit = 'Reps';
-    document.querySelectorAll('.unit-pill').forEach((p,i) => p.classList.toggle('active', i===0));
+    // Populate category dropdown with default = current category
+    const catSel = document.getElementById('ng-cat-select');
+    catSel.innerHTML = categories.map(c => `<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('');
+    catSel.value = activeCatId || (categories[0] ? categories[0].id : '');
+    selectedCatId = catSel.value || null;
+    catSel.onchange = () => { selectedCatId = catSel.value || null; };
+    // Reset unit dropdown
+    document.getElementById('ng-unit-select').value = 'Reps';
     document.getElementById('sheet-bg').classList.add('show');
     document.getElementById('new-sheet').classList.add('show');
   }
@@ -927,6 +1334,8 @@
   function closeBothSheets() {
     if (document.getElementById('history-sheet').classList.contains('show')) { closeHistorySheet(); return; }
     if (document.getElementById('edit-sheet').classList.contains('show')) { closeEditSheet(); return; }
+    if (document.getElementById('new-cat-sheet').classList.contains('show')) { closeNewCatSheet(); return; }
+    if (document.getElementById('edit-cat-sheet').classList.contains('show')) { closeEditCatSheet(); return; }
     if (activeId !== null) closeDetail(); else closeNewSheet();
   }
 
@@ -937,8 +1346,14 @@
     if (!target || target < 1) { document.getElementById('ng-target').focus(); return; }
     const deadline = document.getElementById('ng-deadline').value || null;
     const alarm = getAlarmFromForm('ng', ngSound);
-    goals.push({ id: Date.now(), name, target, unit: selectedUnit, deadline, alarm, logs: [] });
-    save(); renderGoals(); closeNewSheet();
+    const unit = document.getElementById('ng-unit-select').value || selectedUnit;
+    const catId = (document.getElementById('ng-cat-select').value) || null;
+    goals.push({ id: Date.now(), name, target, unit, deadline, alarm, catId, logs: [] });
+    save();
+    if (activeCatId) renderCatGoals(activeCatId);
+    else if (currentView === 'cat') renderCategories();
+    else renderGoals();
+    closeNewSheet();
     document.getElementById('ng-name').value = '';
     document.getElementById('ng-target').value = '';
     document.getElementById('ng-deadline').value = '';
@@ -972,6 +1387,7 @@
 
   function renderGoals() {
     const el = document.getElementById('goals-scroll');
+    if (!el) return;
     if (!goals.length) {
       el.innerHTML = `<div class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round">
@@ -1022,7 +1438,10 @@
     document.getElementById('history-sheet').classList.remove('show');
     document.getElementById('detail-sheet').classList.remove('show');
     document.getElementById('sheet-bg').classList.remove('show');
-    renderGoals(); activeId = null;
+    activeId = null;
+    if (activeCatId) renderCatGoals(activeCatId);
+    else if (currentView === 'cat') renderCategories();
+    else renderGoals();
   }
 
   function renderDetail() {
@@ -1402,6 +1821,7 @@
   }
 
   renderGoals();
+  renderCategories();
   initDayPills('ng', null);
   scheduleAlarms();
   // Register a minimal service worker so Android Chrome shows "Add to Home Screen" banner
