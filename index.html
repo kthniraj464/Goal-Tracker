@@ -13,6 +13,7 @@
   <title>Goal Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+
   <style>
     *, *::before, *::after {
       box-sizing: border-box; margin: 0; padding: 0;
@@ -480,14 +481,64 @@
       white-space: nowrap;
     }
     .cat-select-pill.active { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+
+    /* ── Firebase Auth UI ── */
+    .auth-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; z-index: 200; padding: 40px 30px;
+    }
+    .auth-screen.hidden { display: none; }
+    .auth-logo { font-size: 52px; margin-bottom: 16px; }
+    .auth-title { font-family: var(--ff-display); font-size: 28px; font-weight: 400; color: var(--text-primary); margin-bottom: 8px; text-align: center; }
+    .auth-sub { font-size: 14px; color: var(--text-secondary); text-align: center; margin-bottom: 40px; line-height: 1.6; }
+    .google-btn {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface); border: 0.5px solid var(--border-strong);
+      border-radius: 14px; padding: 14px 24px; cursor: pointer;
+      font-family: var(--ff-body); font-size: 16px; font-weight: 500;
+      color: var(--text-primary); transition: opacity 0.15s; width: 100%; max-width: 300px;
+      justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .google-btn:active { opacity: 0.7; }
+    .auth-loading { font-size: 14px; color: var(--text-secondary); margin-top: 20px; }
+    /* User avatar in header */
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
+      cursor: pointer; border: 0.5px solid var(--border-strong);
+    }
+    .user-avatar-placeholder {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--surface-2); border: 0.5px solid var(--border-strong);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; cursor: pointer;
+    }
+    .sync-indicator {
+      font-size: 10px; color: var(--text-secondary); text-align: center;
+      padding: 4px 0 0; letter-spacing: 0.03em;
+    }
   </style>
 </head>
 <body>
 <div class="app-shell">
 
+  <!-- Auth Screen -->
+  <div class="auth-screen" id="auth-screen">
+    <div class="auth-logo">🎯</div>
+    <div class="auth-title">Goal Hub</div>
+    <div class="auth-sub">Track your goals across all devices.<br>Sign in to sync your data.</div>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c10.5 0 20-7.6 20-21 0-1.4-.1-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3c-7.6 0-14.2 4.3-17.7 11.7z"/><path fill="#FBBC05" d="M24 45c5.5 0 10.5-1.9 14.4-5l-6.7-5.5C29.7 36.1 27 37 24 37c-5.8 0-10.6-3.1-11.8-7.5l-7 5.4C8 41.1 15.4 45 24 45z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-1.1 3-3.5 5.5-6.8 7l6.7 5.5C40.6 37.1 44.5 31 44.5 24c0-1.4-.1-2.7-.5-4z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="auth-loading" id="auth-loading" style="display:none;">Signing in...</div>
+  </div>
+
   <div class="home-screen">
     <div class="home-header">
       <h1 id="home-title">Goals Hub</h1>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div id="user-avatar-wrap" style="display:none;" onclick="showSignOutMenu()"></div>
       <div class="header-dots-wrap">
         <button class="header-dots-btn" onclick="toggleHeaderMenu(event)" id="header-dots-btn" aria-label="Options">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-primary)">
@@ -856,15 +907,48 @@
     </div>
   </div>
 
+<!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
 <script>
+  // ── Firebase Setup ───────────────────────────────────────────
+  const firebaseConfig = {
+    apiKey: "AIzaSyCrgSpNENck3laPltBMhl5EKhjer-akqpU",
+    authDomain: "goal-hub-b5e0c.firebaseapp.com",
+    projectId: "goal-hub-b5e0c",
+    storageBucket: "goal-hub-b5e0c.firebasestorage.app",
+    messagingSenderId: "393767822673",
+    appId: "1:393767822673:web:0aa1ced5472dc16aa71f70",
+    measurementId: "G-J9FC1GXTPD"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  window.db = firebase.firestore();
+  window.currentUser = null;
+  let firestoreUnsubscribe = null;
+
   let goals = JSON.parse(localStorage.getItem('gt-goals') || '[]');
   let activeId = null;
   let selectedUnit = 'Reps';
   let selectedEditUnit = 'Reps';
   let currentSort = localStorage.getItem('gt-sort') || 'manual';
 
-  function save() { localStorage.setItem('gt-goals', JSON.stringify(goals)); }
-  function saveSort() { localStorage.setItem('gt-sort', currentSort); }
+  function syncToFirestore() {
+    if (!window.currentUser || !window.db) return;
+    try {
+      window.db.collection('users').doc(window.currentUser.uid).set({
+        goals, categories,
+        sort: currentSort,
+        catSort,
+        theme: currentTheme,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).catch(e => console.error('Sync failed:', e));
+    } catch(e) { console.error('Sync error:', e); }
+  }
+  function save() { localStorage.setItem('gt-goals', JSON.stringify(goals)); syncToFirestore(); }
+  function saveSort() { localStorage.setItem('gt-sort', currentSort); syncToFirestore(); }
 
   // ── Categories ────────────────────────────────────────────────
   let categories = JSON.parse(localStorage.getItem('gt-cats') || '[]');
@@ -873,7 +957,7 @@
   let selectedCatId = null; // selected in new goal form
   let selectedEmoji = '💪';
 
-  function saveCats() { localStorage.setItem('gt-cats', JSON.stringify(categories)); }
+  function saveCats() { localStorage.setItem('gt-cats', JSON.stringify(categories)); syncToFirestore(); }
 
   function toggleCatSortMenu(e) {
     e.stopPropagation();
@@ -1820,12 +1904,93 @@
     }
   }
 
+
+
+  // ── Auth ──────────────────────────────────────────────────────
+  function signInWithGoogle() {
+    document.getElementById('auth-loading').style.display = 'block';
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(err => {
+      document.getElementById('auth-loading').style.display = 'none';
+      alert('Sign-in failed: ' + err.message);
+    });
+  }
+
+  function showSignOutMenu() {
+    if (confirm('Sign out of Goal Hub?')) {
+      if (firestoreUnsubscribe) firestoreUnsubscribe();
+      auth.signOut();
+    }
+  }
+
+  function updateAvatarUI(user) {
+    const wrap = document.getElementById('user-avatar-wrap');
+    if (!user) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+    wrap.style.display = 'flex';
+    wrap.style.alignItems = 'center';
+    if (user.photoURL) {
+      wrap.innerHTML = `<img class="user-avatar" src="${user.photoURL}" title="${user.displayName || user.email}" alt="avatar">`;
+    } else {
+      const initials = (user.displayName || user.email || '?')[0].toUpperCase();
+      wrap.innerHTML = `<div class="user-avatar-placeholder" title="${user.email}">${initials}</div>`;
+    }
+  }
+
+  // ── Firestore sync ────────────────────────────────────────────
+  function getUserDoc(user) {
+    return window.db.collection('users').doc(user.uid);
+  }
+
+  function startSync(user) {
+    if (firestoreUnsubscribe) firestoreUnsubscribe();
+    firestoreUnsubscribe = getUserDoc(user).onSnapshot(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        goals = data.goals || [];
+        categories = data.categories || [];
+        currentSort = data.sort || 'manual';
+        catSort = data.catSort || 'manual';
+        currentTheme = data.theme || 'light';
+        applyTheme(currentTheme);
+      }
+      if (activeCatId) renderCatGoals(activeCatId);
+      else if (currentView === 'cat') renderCategories();
+      else renderGoals();
+      scheduleAlarms();
+    }, err => console.error('Firestore sync error:', err));
+  }
+
+
+
+
+
+  // ── Auth state observer ───────────────────────────────────────
+  auth.onAuthStateChanged(user => {
+    const authScreen = document.getElementById('auth-screen');
+    if (user) {
+      window.currentUser = user;
+      authScreen.classList.add('hidden');
+      updateAvatarUI(user);
+      // Migrate any existing localStorage data to Firestore on first login
+      getUserDoc(user).get().then(doc => {
+        if (!doc.exists && (goals.length || categories.length)) {
+          syncToFirestore();
+        }
+        startSync(user);
+      });
+    } else {
+      window.currentUser = null;
+      authScreen.classList.remove('hidden');
+      updateAvatarUI(null);
+      if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
+    }
+  });
+
   renderGoals();
   renderCategories();
   initDayPills('ng', null);
   scheduleAlarms();
-  // Register a minimal service worker so Android Chrome shows "Add to Home Screen" banner
-  // and the app launches in standalone (no URL bar) mode
+
   if ('serviceWorker' in navigator) {
     const swCode = `
       self.addEventListener('install', e => self.skipWaiting());
