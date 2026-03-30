@@ -1980,40 +1980,48 @@
 
 
   // ── Auth state observer ───────────────────────────────────────
-  // Handle redirect result after returning from Google sign-in
+  // On mobile, signInWithRedirect sends the user to Google and back.
+  // We MUST wait for getRedirectResult() to fully resolve before we
+  // start listening with onAuthStateChanged — otherwise the auth state
+  // observer fires before Firebase has processed the redirect token,
+  // sees no user, and shows the sign-in screen again (the loop bug).
   auth.getRedirectResult().then(result => {
     if (result && result.user) {
-      // Redirect sign-in successful - onAuthStateChanged will fire automatically
       console.log('Redirect sign-in successful:', result.user.email);
     }
   }).catch(err => {
     console.error('Redirect error:', err);
-    if (err.code && err.code !== 'auth/no-current-user') {
+    // Ignore the benign "no redirect operation pending" error
+    if (err.code && err.code !== 'auth/no-current-user' && err.code !== 'auth/null-user') {
+      document.getElementById('auth-loading').style.display = 'none';
       alert('Sign-in failed: ' + err.message);
     }
-  });
-
-  auth.onAuthStateChanged(user => {
-    // Hide loading screen once Firebase has resolved auth state
-    document.getElementById('loading-screen').classList.add('hidden');
-    const authScreen = document.getElementById('auth-screen');
-    if (user) {
-      window.currentUser = user;
-      authScreen.classList.add('hidden');
-      updateAvatarUI(user);
-      // Migrate any existing localStorage data to Firestore on first login
-      getUserDoc(user).get().then(doc => {
-        if (!doc.exists && (goals.length || categories.length)) {
-          syncToFirestore();
-        }
-        startSync(user);
-      });
-    } else {
-      window.currentUser = null;
-      authScreen.classList.remove('hidden');
-      updateAvatarUI(null);
-      if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
-    }
+  }).finally(() => {
+    // Only register the auth observer AFTER redirect result is handled.
+    // This prevents the race condition that causes the sign-in loop on mobile.
+    auth.onAuthStateChanged(user => {
+      document.getElementById('loading-screen').classList.add('hidden');
+      const authScreen = document.getElementById('auth-screen');
+      if (user) {
+        window.currentUser = user;
+        authScreen.classList.add('hidden');
+        document.getElementById('auth-loading').style.display = 'none';
+        updateAvatarUI(user);
+        // Migrate any existing localStorage data to Firestore on first login
+        getUserDoc(user).get().then(doc => {
+          if (!doc.exists && (goals.length || categories.length)) {
+            syncToFirestore();
+          }
+          startSync(user);
+        });
+      } else {
+        window.currentUser = null;
+        authScreen.classList.remove('hidden');
+        document.getElementById('auth-loading').style.display = 'none';
+        updateAvatarUI(null);
+        if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
+      }
+    });
   });
 
   renderGoals();
