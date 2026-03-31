@@ -53,11 +53,10 @@
       position: relative; overflow: hidden;
     }
 
-    .home-screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; width: 100%; position: relative; }
+    .home-screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     .home-header {
       padding: 10px 20px 18px; display: flex;
       justify-content: space-between; align-items: center; flex-shrink: 0;
-      gap: 8px; position: relative; z-index: 10;
     }
     .home-header h1 {
       font-family: var(--ff-display); font-size: 28px;
@@ -86,7 +85,7 @@
     .header-dots-menu {
       position: absolute; top: 44px; right: 0;
       background: var(--surface); border: 0.5px solid var(--border-strong);
-      border-radius: 14px; min-width: 200px; z-index: 200;
+      border-radius: 14px; min-width: 200px; z-index: 100;
       box-shadow: 0 8px 24px rgba(0,0,0,0.15);
       overflow: hidden; display: none;
     }
@@ -419,10 +418,9 @@
     }
     .view-tab.active { background: var(--surface); color: var(--text-primary); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
     .cat-grid {
-      flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 12px 120px;
+      flex: 1; overflow-y: auto; padding: 0 12px 120px;
       display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
       align-content: start; -webkit-overflow-scrolling: touch;
-      width: 100%; box-sizing: border-box;
     }
     .cat-grid::-webkit-scrollbar { display: none; }
     .cat-card {
@@ -446,17 +444,15 @@
     .cat-card-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.4s; }
     /* Category detail screen */
     .cat-detail-screen {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: var(--bg);
+      position: absolute; inset: 0; background: var(--bg);
       display: flex; flex-direction: column; overflow: hidden;
       transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
-      z-index: 50;
+      z-index: 2;
     }
     .cat-detail-screen.show { transform: translateX(0); }
     .cat-detail-header {
-      padding: 14px 20px 14px; display: flex;
+      padding: 14px 20px 10px; display: flex;
       align-items: center; gap: 12px; flex-shrink: 0;
-      border-bottom: 0.5px solid var(--border);
     }
     .back-btn {
       width: 36px; height: 36px; border-radius: 50%; border: none;
@@ -466,8 +462,7 @@
     .back-btn:active { opacity: 0.7; }
     .cat-detail-title {
       font-family: var(--ff-display); font-size: 24px; font-weight: 400;
-      color: var(--text-primary); flex: 1; overflow: hidden;
-      text-overflow: ellipsis; white-space: nowrap;
+      color: var(--text-primary); flex: 1;
     }
 
     /* Uncategorized pill in new goal */
@@ -557,9 +552,9 @@
   <div class="home-screen">
     <div class="home-header">
       <h1 id="home-title">Goals Hub</h1>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;">
         <div id="user-avatar-wrap" style="display:none;align-items:center;" onclick="showSyncCodeMenu()"><div style="width:32px;height:32px;border-radius:50%;background:var(--surface-2);border:0.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;" title="Sync code">🔗</div></div>
-        <div class="header-dots-wrap">
+      <div class="header-dots-wrap">
         <button class="header-dots-btn" onclick="toggleHeaderMenu(event)" id="header-dots-btn" aria-label="Options">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-primary)">
             <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
@@ -588,7 +583,6 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             Dark
           </div>
-        </div>
         </div>
       </div>
     </div>
@@ -1349,10 +1343,8 @@
     document.getElementById('eg-target').value = g.target;
     document.getElementById('eg-deadline').value = g.deadline || '';
     selectedEditUnit = g.unit || 'Reps';
-    // Populate unit select
     const unitSel = document.getElementById('eg-unit-select');
     if (unitSel) unitSel.value = selectedEditUnit;
-    // Populate category select
     const catSel = document.getElementById('eg-cat-select');
     if (catSel) {
       catSel.innerHTML = '<option value="">None</option>' +
@@ -1918,9 +1910,6 @@
 
 
   // ── Sync-code auth (no Google sign-in required) ─────────────
-  // Each user gets a random sync code stored in localStorage.
-  // The same code on any device syncs to the same Firestore doc.
-
   function generateSyncCode() {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     let code = 'gt_';
@@ -1953,7 +1942,6 @@
     localStorage.setItem('gt-sync-code', code);
     window.syncCode = code;
     if (isNew) {
-      // Write initial doc so the code "exists"
       getSyncDoc().set({
         goals, categories,
         sort: currentSort, catSort,
@@ -1967,7 +1955,6 @@
         showAuthError('Could not create: ' + err.message);
       });
     } else {
-      // Just connect — startSync will pull data
       document.getElementById('auth-loading').style.display = 'none';
       enterApp(code);
     }
@@ -1978,8 +1965,6 @@
     document.getElementById('auth-screen').classList.add('hidden');
     const wrap = document.getElementById('user-avatar-wrap');
     wrap.style.display = 'flex';
-    const badge = document.getElementById('sync-code-badge');
-    if (badge) badge.textContent = '🔗 ' + code;
     startSync();
   }
 
@@ -2039,13 +2024,7 @@
     const swCode = `
       self.addEventListener('install', e => self.skipWaiting());
       self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-      self.addEventListener('fetch', e => {
-        // Network-first: always try network, fall back to cache
-        // This ensures updates to the HTML file are picked up immediately
-        e.respondWith(
-          fetch(e.request).catch(() => new Response(''))
-        );
-      });
+      self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response(''))));
     `;
     const swBlob = new Blob([swCode], { type: 'application/javascript' });
     const swURL = URL.createObjectURL(swBlob);
