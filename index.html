@@ -517,6 +517,118 @@
       font-size: 10px; color: var(--text-secondary); text-align: center;
       padding: 4px 0 0; letter-spacing: 0.03em;
     }
+
+    /* ── Picker Sheet (New Goal vs Notebook) ── */
+    .picker-sheet {
+      position: fixed; bottom: 0; left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%; max-width: 430px; background: var(--surface);
+      border-radius: 22px 22px 0 0; z-index: 20;
+      transition: transform 0.32s cubic-bezier(0.32,0.72,0,1);
+    }
+    .picker-sheet.show { transform: translateX(-50%) translateY(0); }
+    .picker-options { display: flex; flex-direction: column; gap: 10px; padding: 18px 22px 40px; }
+    .picker-option {
+      display: flex; align-items: center; gap: 16px;
+      padding: 18px; border-radius: 16px;
+      background: var(--surface-2); border: 0.5px solid var(--border);
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .picker-option:active { opacity: 0.7; }
+    .picker-option-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--accent); display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0;
+    }
+    .picker-option-icon svg { stroke: var(--surface); }
+    .picker-option-text { flex: 1; }
+    .picker-option-title {
+      font-family: var(--ff-display); font-size: 18px; font-weight: 400;
+      color: var(--text-primary); margin-bottom: 2px;
+    }
+    .picker-option-sub { font-size: 13px; color: var(--text-secondary); }
+
+    /* ── Notebook cards inside cat detail ── */
+    .notebook-card {
+      background: var(--surface); border: 0.5px solid var(--border);
+      border-radius: 18px; padding: 18px; cursor: pointer;
+      transition: transform 0.1s; -webkit-user-select: none; user-select: none;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .notebook-card:active { transform: scale(0.98); }
+    .notebook-card-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--surface-2); display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0;
+    }
+    .notebook-card-title {
+      font-family: var(--ff-display); font-size: 18px; font-weight: 400;
+      color: var(--text-primary); flex: 1;
+    }
+    .notebook-card-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .notebook-card-del {
+      background: none; border: none; color: var(--text-secondary);
+      padding: 8px; cursor: pointer; border-radius: 8px; transition: color 0.15s;
+    }
+    .notebook-card-del:active { color: #c0392b; }
+
+    /* ── Notebook editor screen ── */
+    .notebook-screen {
+      position: absolute; inset: 0; background: var(--bg);
+      display: flex; flex-direction: column; overflow: hidden;
+      transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+      z-index: 3;
+    }
+    .notebook-screen.show { transform: translateX(0); }
+    .notebook-header {
+      padding: 14px 20px 10px; display: flex;
+      align-items: center; gap: 12px; flex-shrink: 0;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .notebook-title-input {
+      font-family: var(--ff-display); font-size: 22px; font-weight: 400;
+      color: var(--text-primary); flex: 1; border: none; background: none;
+      outline: none; -webkit-appearance: none;
+    }
+    .notebook-toolbar {
+      display: flex; align-items: center; gap: 4px;
+      padding: 8px 16px; border-bottom: 0.5px solid var(--border);
+      flex-shrink: 0; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    .notebook-toolbar::-webkit-scrollbar { display: none; }
+    .nb-tool-btn {
+      width: 36px; height: 36px; border-radius: 8px; border: none;
+      background: none; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-secondary); flex-shrink: 0;
+      transition: background 0.12s, color 0.12s;
+    }
+    .nb-tool-btn:active, .nb-tool-btn.active {
+      background: var(--surface-2); color: var(--text-primary);
+    }
+    .nb-tool-sep {
+      width: 1px; height: 22px; background: var(--border);
+      flex-shrink: 0; margin: 0 4px;
+    }
+    .notebook-editor {
+      flex: 1; overflow-y: auto; padding: 16px 20px 120px;
+      font-family: var(--ff-body); font-size: 16px; color: var(--text-primary);
+      line-height: 1.7; outline: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .notebook-editor::-webkit-scrollbar { display: none; }
+    .notebook-editor ul { list-style: disc; padding-left: 22px; margin: 4px 0; }
+    .notebook-editor ol { list-style: decimal; padding-left: 22px; margin: 4px 0; }
+    .notebook-editor li { margin: 2px 0; }
+    .notebook-editor input[type=checkbox] { margin-right: 8px; accent-color: var(--accent); }
+    .notebook-save-bar {
+      position: absolute; bottom: 28px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px; color: var(--text-secondary);
+      background: var(--surface-2); border-radius: 20px;
+      padding: 6px 14px; pointer-events: none; opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .notebook-save-bar.show { opacity: 1; }
   </style>
 </head>
 <body>
@@ -622,8 +734,47 @@
         </div>
       </div>
       <div class="goals-scroll" id="cat-goals-scroll"></div>
+
+      <!-- Notebook editor screen (inside cat-detail-screen) -->
+      <div class="notebook-screen" id="notebook-screen">
+        <div class="notebook-header">
+          <button class="back-btn" onclick="closeNotebook()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <input class="notebook-title-input" id="notebook-title-input" placeholder="Notebook name" oninput="scheduleNotebookSave()">
+          <button class="nb-tool-btn" onclick="deleteActiveNotebook()" style="color:var(--text-secondary);" title="Delete notebook">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+        <div class="notebook-toolbar">
+          <button class="nb-tool-btn" title="Bold" onclick="nbFormat('bold')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+          </button>
+          <button class="nb-tool-btn" title="Italic" onclick="nbFormat('italic')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+          </button>
+          <div class="nb-tool-sep"></div>
+          <button class="nb-tool-btn" title="Bullet list" onclick="nbFormat('insertUnorderedList')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>
+          </button>
+          <button class="nb-tool-btn" title="Numbered list" onclick="nbFormat('insertOrderedList')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+          </button>
+          <button class="nb-tool-btn" title="Checkbox" onclick="nbInsertCheckbox()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="6" height="6" rx="1"/><polyline points="4 8 6 10 9 6"/><line x1="13" y1="8" x2="21" y2="8"/><rect x="3" y="14" width="6" height="6" rx="1"/><line x1="13" y1="17" x2="21" y2="17"/></svg>
+          </button>
+          <div class="nb-tool-sep"></div>
+          <button class="nb-tool-btn" title="Heading" onclick="nbFormat('formatBlock','h3')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h16"/><path d="M4 6v12"/><path d="M20 6v12"/></svg>
+          </button>
+          <button class="nb-tool-btn" title="Clear formatting" onclick="nbFormat('removeFormat')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="notebook-editor" id="notebook-editor" contenteditable="true" oninput="scheduleNotebookSave()"></div>
+        <div class="notebook-save-bar" id="notebook-save-bar">Saved</div>
+      </div>
     </div>
-  </div>
 
   <!-- Bottom FAB -->
   <button class="fab" onclick="handleFab()" aria-label="New">
@@ -633,6 +784,55 @@
   </button>
 
   <div class="sheet-bg" id="sheet-bg" onclick="closeBothSheets()"></div>
+
+  <!-- Picker Sheet: New Goal vs Notebook -->
+  <div class="picker-sheet" id="picker-sheet">
+    <div class="sheet-handle"></div>
+    <div class="picker-options">
+      <div class="picker-option" onclick="pickerChooseGoal()">
+        <div class="picker-option-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+        </div>
+        <div class="picker-option-text">
+          <div class="picker-option-title">New Goal</div>
+          <div class="picker-option-sub">Track a target with progress</div>
+        </div>
+      </div>
+      <div class="picker-option" onclick="pickerChooseNotebook()">
+        <div class="picker-option-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>
+          </svg>
+        </div>
+        <div class="picker-option-text">
+          <div class="picker-option-title">Notebook</div>
+          <div class="picker-option-sub">Notes, checklists &amp; ideas</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Notebook Sheet -->
+  <div class="sheet" id="new-notebook-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-inner">
+      <div class="sheet-title">New notebook</div>
+      <div class="field">
+        <label>Category</label>
+        <select id="nnb-cat-select" style="width:100%;font-size:16px;padding:13px 14px;border:0.5px solid var(--border-strong);border-radius:12px;background:var(--surface-2);color:var(--text-primary);font-family:var(--ff-body);appearance:none;-webkit-appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888780' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;"></select>
+      </div>
+      <div class="field">
+        <label>Notebook Name</label>
+        <input type="text" id="nnb-name" placeholder="e.g. Ideas &amp; Plans">
+      </div>
+      <div class="btn-row">
+        <button class="btn-sec" onclick="closeNewNotebookSheet()">Cancel</button>
+        <button class="btn-pri" onclick="saveNotebook()">Create</button>
+      </div>
+    </div>
+  </div>
 
   <!-- New Category Sheet -->
   <div class="sheet" id="new-cat-sheet">
@@ -956,6 +1156,7 @@
         sort: currentSort,
         catSort,
         theme: currentTheme,
+        notebooks: notebooks || [],
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true }).catch(e => console.error('Sync failed:', e));
     } catch(e) { console.error('Sync error:', e); }
@@ -1058,10 +1259,22 @@
   function renderCatGoals(catId) {
     const el = document.getElementById('cat-goals-scroll');
     const catGoals = getSortedCatGoals(goals.filter(g => g.catId === catId));
-    if (!catGoals.length) {
+    const catNbs = notebooks.filter(n => n.catId === catId);
+    if (!catGoals.length && !catNbs.length) {
       el.innerHTML = `<div class="empty-state"><p>No goals in this category yet.<br>Tap <strong>+</strong> to add one.</p></div>`; return;
     }
-    el.innerHTML = catGoals.map(g => {
+    const nbHtml = catNbs.map(nb => `
+      <div class="notebook-card" onclick="openNotebook('${nb.id}')">
+        <div class="notebook-card-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div class="notebook-card-title">${nb.name}</div>
+          <div class="notebook-card-meta">Notebook · ${nb.content ? 'Has notes' : 'Empty'}</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`).join('');
+    const goalsHtml = catGoals.map(g => {
       const done = total(g), pct = Math.min(100, Math.round(done/g.target*100)), comp = done >= g.target;
       const unit = g.unit || 'Reps';
       const last = g.logs.length ? fmtDate(g.logs[g.logs.length-1].ts) : 'No sessions yet';
@@ -1083,6 +1296,7 @@
         ${g.alarm ? `<div class="alarm-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${g.alarm.time}</div>` : ''}
       </div>`;
     }).join('');
+    el.innerHTML = nbHtml + goalsHtml;
   }
 
   let editCatId = null;
@@ -1126,8 +1340,121 @@
     categories = categories.filter(c => c.id !== editCatId);
     save(); saveCats(); closeEditCatSheet(); renderCategories(); refreshCatPills();
   }
+  // ── Notebooks ────────────────────────────────────────────────
+  let notebooks = JSON.parse(localStorage.getItem('gt-notebooks') || '[]');
+  let activeNotebookId = null;
+  let notebookSaveTimer = null;
+
+  function saveNotebooks() {
+    localStorage.setItem('gt-notebooks', JSON.stringify(notebooks));
+    syncToFirestore();
+  }
+
+  // Picker sheet
+  function openPickerSheet() {
+    document.getElementById('sheet-bg').classList.add('show');
+    document.getElementById('picker-sheet').classList.add('show');
+  }
+  function closePickerSheet() {
+    document.getElementById('picker-sheet').classList.remove('show');
+    document.getElementById('sheet-bg').classList.remove('show');
+  }
+  function pickerChooseGoal() {
+    closePickerSheet();
+    openNewSheet();
+  }
+  function pickerChooseNotebook() {
+    closePickerSheet();
+    openNewNotebookSheet();
+  }
+
+  // New notebook sheet
+  function openNewNotebookSheet() {
+    const sel = document.getElementById('nnb-cat-select');
+    sel.innerHTML = categories.map(c => `<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('');
+    sel.value = activeCatId || (categories[0] ? categories[0].id : '');
+    document.getElementById('nnb-name').value = '';
+    document.getElementById('sheet-bg').classList.add('show');
+    document.getElementById('new-notebook-sheet').classList.add('show');
+    setTimeout(() => document.getElementById('nnb-name').focus(), 350);
+  }
+  function closeNewNotebookSheet() {
+    document.getElementById('new-notebook-sheet').classList.remove('show');
+    document.getElementById('sheet-bg').classList.remove('show');
+  }
+  function saveNotebook() {
+    const name = document.getElementById('nnb-name').value.trim();
+    if (!name) { document.getElementById('nnb-name').focus(); return; }
+    const catId = document.getElementById('nnb-cat-select').value || null;
+    const nb = { id: 'nb-' + Date.now(), name, catId, content: '', createdAt: Date.now(), updatedAt: Date.now() };
+    notebooks.push(nb);
+    saveNotebooks();
+    closeNewNotebookSheet();
+    if (activeCatId) renderCatGoals(activeCatId);
+    // Open it immediately
+    openNotebook(nb.id);
+  }
+
+  // Open notebook editor
+  function openNotebook(nbId) {
+    const nb = notebooks.find(n => n.id === nbId);
+    if (!nb) return;
+    activeNotebookId = nbId;
+    document.getElementById('notebook-title-input').value = nb.name;
+    document.getElementById('notebook-editor').innerHTML = nb.content || '';
+    document.getElementById('notebook-screen').classList.add('show');
+    history.pushState({ page: 'notebook', nbId }, '');
+    setTimeout(() => document.getElementById('notebook-editor').focus(), 350);
+  }
+  function closeNotebook() {
+    flushNotebookSave();
+    document.getElementById('notebook-screen').classList.remove('show');
+    activeNotebookId = null;
+    if (activeCatId) renderCatGoals(activeCatId);
+  }
+
+  function scheduleNotebookSave() {
+    clearTimeout(notebookSaveTimer);
+    notebookSaveTimer = setTimeout(flushNotebookSave, 1200);
+  }
+  function flushNotebookSave() {
+    clearTimeout(notebookSaveTimer);
+    if (!activeNotebookId) return;
+    const nb = notebooks.find(n => n.id === activeNotebookId);
+    if (!nb) return;
+    nb.name = document.getElementById('notebook-title-input').value || nb.name;
+    nb.content = document.getElementById('notebook-editor').innerHTML;
+    nb.updatedAt = Date.now();
+    saveNotebooks();
+    const bar = document.getElementById('notebook-save-bar');
+    bar.classList.add('show');
+    setTimeout(() => bar.classList.remove('show'), 1500);
+  }
+
+  function deleteActiveNotebook() {
+    if (!activeNotebookId) return;
+    if (!confirm('Delete this notebook?')) return;
+    notebooks = notebooks.filter(n => n.id !== activeNotebookId);
+    saveNotebooks();
+    document.getElementById('notebook-screen').classList.remove('show');
+    activeNotebookId = null;
+    if (activeCatId) renderCatGoals(activeCatId);
+  }
+
+  // Notebook editor formatting
+  function nbFormat(cmd, val) {
+    document.getElementById('notebook-editor').focus();
+    document.execCommand(cmd, false, val || null);
+    scheduleNotebookSave();
+  }
+  function nbInsertCheckbox() {
+    document.getElementById('notebook-editor').focus();
+    document.execCommand('insertHTML', false, '<input type="checkbox"> ');
+    scheduleNotebookSave();
+  }
+
   function handleFab() {
-    if (activeCatId) openNewSheet();
+    if (activeCatId) openPickerSheet();
     else openNewCatSheet();
   }
 
@@ -1421,6 +1748,9 @@
   }
 
   function closeBothSheets() {
+    if (document.getElementById('notebook-screen').classList.contains('show')) { closeNotebook(); return; }
+    if (document.getElementById('picker-sheet').classList.contains('show')) { closePickerSheet(); return; }
+    if (document.getElementById('new-notebook-sheet').classList.contains('show')) { closeNewNotebookSheet(); return; }
     if (document.getElementById('history-sheet').classList.contains('show')) { closeHistorySheet(); return; }
     if (document.getElementById('edit-sheet').classList.contains('show')) { closeEditSheet(); return; }
     if (document.getElementById('new-cat-sheet').classList.contains('show')) { closeNewCatSheet(); return; }
@@ -1947,6 +2277,7 @@
     if (isNew) {
       getSyncDoc().set({
         goals, categories,
+        notebooks: notebooks || [],
         sort: currentSort, catSort,
         theme: currentTheme,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1996,6 +2327,7 @@
         const data = doc.data();
         goals = data.goals || [];
         categories = data.categories || [];
+        notebooks = data.notebooks || [];
         currentSort = data.sort || 'manual';
         catSort = data.catSort || 'manual';
         currentTheme = data.theme || 'light';
@@ -2031,6 +2363,19 @@
     const newSheet = document.getElementById('new-sheet');
     const newCatSheet = document.getElementById('new-cat-sheet');
     const editCatSheet = document.getElementById('edit-cat-sheet');
+    const pickerSheet = document.getElementById('picker-sheet');
+    const newNbSheet = document.getElementById('new-notebook-sheet');
+    const nbScreen = document.getElementById('notebook-screen');
+
+    if (nbScreen && nbScreen.classList.contains('show')) {
+      closeNotebook(); history.pushState({ page: 'cat', catId: activeCatId }, ''); return;
+    }
+    if (pickerSheet && pickerSheet.classList.contains('show')) {
+      closePickerSheet(); history.pushState(activeCatId ? { page: 'cat', catId: activeCatId } : { page: 'home' }, ''); return;
+    }
+    if (newNbSheet && newNbSheet.classList.contains('show')) {
+      closeNewNotebookSheet(); history.pushState(activeCatId ? { page: 'cat', catId: activeCatId } : { page: 'home' }, ''); return;
+    }
 
     if (editSheet && editSheet.classList.contains('show')) {
       closeEditSheet(); history.pushState({ page: 'detail', goalId: activeId }, ''); return;
