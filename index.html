@@ -682,14 +682,14 @@
     .notebook-save-bar.show { opacity: 1; }
 
     /* ── Category card accent colors ── */
-    .cat-color-0 { border-left: 3px solid #7c9ec9; }
-    .cat-color-1 { border-left: 3px solid #82b98a; }
-    .cat-color-2 { border-left: 3px solid #c9956e; }
-    .cat-color-3 { border-left: 3px solid #b07cc6; }
-    .cat-color-4 { border-left: 3px solid #c96e7a; }
-    .cat-color-5 { border-left: 3px solid #6eb8c9; }
-    .cat-color-6 { border-left: 3px solid #c9bf6e; }
-    .cat-color-7 { border-left: 3px solid #8ab99e; }
+    .cat-color-0 { }
+    .cat-color-1 { }
+    .cat-color-2 { }
+    .cat-color-3 { }
+    .cat-color-4 { }
+    .cat-color-5 { }
+    .cat-color-6 { }
+    .cat-color-7 { }
   </style>
 </head>
 <body>
@@ -1325,9 +1325,7 @@
         </div>
         <div>
           <div class="cat-card-name">${cat.name}</div>
-          <div class="cat-card-count">${catGoals.length} goal${catGoals.length!==1?'s':''} · ${totalPct}%</div>
         </div>
-        <div class="cat-card-bar"><div class="cat-card-bar-fill" style="width:${totalPct}%"></div></div>
       </div>`;
     }).join('');
   }
