@@ -1630,7 +1630,33 @@
   }
   function nbMenuAction(cmd, val) {
     document.getElementById('nb-header-menu').classList.remove('open');
-    document.getElementById('notebook-editor').focus();
+    const editor = document.getElementById('notebook-editor');
+    editor.focus();
+
+    // For list commands: if the cursor is inside a non-paragraph block (e.g. heading),
+    // insert a new empty paragraph first so the list starts on a fresh line.
+    if (cmd === 'insertOrderedList' || cmd === 'insertUnorderedList') {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) {
+        let node = sel.getRangeAt(0).startContainer;
+        // Walk up to find the block element inside the editor
+        while (node && node !== editor) {
+          const tag = node.nodeName && node.nodeName.toLowerCase();
+          if (['h1','h2','h3','h4','h5','h6'].includes(tag)) {
+            // Move cursor to end of heading, then insert a new paragraph
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            range.collapse(false); // collapse to end
+            sel.removeAllRanges();
+            sel.addRange(range);
+            document.execCommand('insertParagraph', false, null);
+            break;
+          }
+          node = node.parentNode;
+        }
+      }
+    }
+
     document.execCommand(cmd, false, val || null);
     scheduleNotebookSave();
   }
