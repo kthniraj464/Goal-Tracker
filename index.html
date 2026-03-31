@@ -1046,6 +1046,7 @@
     document.getElementById('cat-detail-title').textContent = cat.emoji + ' ' + cat.name;
     renderCatGoals(catId);
     document.getElementById('cat-detail-screen').classList.add('show');
+    history.pushState({ page: 'cat', catId }, '');
   }
 
   function closeCatDetail() {
@@ -1519,6 +1520,7 @@
     renderDetail();
     document.getElementById('sheet-bg').classList.add('show');
     document.getElementById('detail-sheet').classList.add('show');
+    history.pushState({ page: 'detail', goalId: activeId }, '');
   }
 
   function closeDetail() {
@@ -2015,6 +2017,73 @@
     document.getElementById('loading-screen').classList.add('hidden');
     document.getElementById('auth-screen').classList.remove('hidden');
   }
+
+  // ── Android back button handler ──────────────────────────────
+  // Push an initial state so we always have something to go back to
+  history.replaceState({ page: 'home' }, '');
+
+  window.addEventListener('popstate', function(e) {
+    const state = e.state || { page: 'home' };
+
+    // If any bottom sheet is open, close it first
+    const editSheet = document.getElementById('edit-sheet');
+    const histSheet = document.getElementById('history-sheet');
+    const newSheet = document.getElementById('new-sheet');
+    const newCatSheet = document.getElementById('new-cat-sheet');
+    const editCatSheet = document.getElementById('edit-cat-sheet');
+
+    if (editSheet && editSheet.classList.contains('show')) {
+      closeEditSheet(); history.pushState({ page: 'detail', goalId: activeId }, ''); return;
+    }
+    if (histSheet && histSheet.classList.contains('show')) {
+      closeHistorySheet(); history.pushState({ page: 'detail', goalId: activeId }, ''); return;
+    }
+    if (newSheet && newSheet.classList.contains('show')) {
+      closeNewSheet(); history.pushState(activeCatId ? { page: 'cat', catId: activeCatId } : { page: 'home' }, ''); return;
+    }
+    if (newCatSheet && newCatSheet.classList.contains('show')) {
+      closeNewCatSheet(); history.pushState({ page: 'home' }, ''); return;
+    }
+    if (editCatSheet && editCatSheet.classList.contains('show')) {
+      document.getElementById('edit-cat-sheet').classList.remove('show');
+      document.getElementById('sheet-bg').classList.remove('show');
+      history.pushState({ page: 'home' }, ''); return;
+    }
+
+    // Handle main navigation states
+    if (state.page === 'detail' || document.getElementById('detail-sheet').classList.contains('show')) {
+      closeDetail();
+      history.pushState(activeCatId ? { page: 'cat', catId: activeCatId } : { page: 'home' }, '');
+      return;
+    }
+    if (state.page === 'cat' || document.getElementById('cat-detail-screen').classList.contains('show')) {
+      closeCatDetail();
+      history.pushState({ page: 'home' }, '');
+      return;
+    }
+    // Already at home — double back to exit
+    if (window._backPressedOnce) {
+      // Second press — let the browser exit naturally (do not pushState)
+      return;
+    }
+    window._backPressedOnce = true;
+    // Show a toast-style hint
+    let toast = document.getElementById('back-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'back-toast';
+      toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-family:var(--ff-body);z-index:9999;pointer-events:none;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = 'Press back again to exit';
+    toast.style.opacity = '1';
+    setTimeout(() => {
+      window._backPressedOnce = false;
+      toast.style.opacity = '0';
+    }, 2000);
+    // Push state back so second press triggers popstate again
+    history.pushState({ page: 'home' }, '');
+  });
 
   renderGoals();
   renderCategories();
