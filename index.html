@@ -2062,16 +2062,22 @@
       return;
     }
     // Already at home — double back to exit
-    // ALWAYS push state back first to prevent browser from exiting immediately
+    // Always push state back to keep the stack alive
     history.pushState({ page: 'home' }, '');
 
-    if (window._backPressedOnce) {
-      // Second press within 2s — navigate away to exit PWA
-      window._backPressedOnce = false;
-      history.go(-(history.length - 1));
+    const now = Date.now();
+    if (window._lastBackPress && (now - window._lastBackPress) < 2000) {
+      // Second press within 2s — show exit by briefly going back then forward
+      // This is the most reliable cross-browser way to signal exit intent
+      window._lastBackPress = null;
+      // Hide the toast
+      const t = document.getElementById('back-toast');
+      if (t) t.style.opacity = '0';
+      // Use location to navigate away — exits the PWA
+      window.location.href = 'about:blank';
       return;
     }
-    window._backPressedOnce = true;
+    window._lastBackPress = now;
     // Show toast
     let toast = document.getElementById('back-toast');
     if (!toast) {
@@ -2083,7 +2089,7 @@
     toast.textContent = 'Press back again to exit';
     toast.style.opacity = '1';
     setTimeout(() => {
-      window._backPressedOnce = false;
+      window._lastBackPress = null;
       toast.style.opacity = '0';
     }, 2000);
   });
