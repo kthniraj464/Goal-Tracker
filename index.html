@@ -572,6 +572,32 @@
     }
     .notebook-card-del:active { color: #c0392b; }
 
+    /* ── Card-level three-dot menu ── */
+    .card-dots-wrap { position: relative; flex-shrink: 0; }
+    .card-dots-btn {
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: var(--surface-2); display: flex; align-items: center;
+      justify-content: center; cursor: pointer; flex-shrink: 0;
+      color: var(--text-secondary); transition: opacity 0.15s;
+    }
+    .card-dots-btn:active { opacity: 0.6; }
+    .card-dots-menu {
+      position: absolute; top: 38px; right: 0;
+      background: var(--surface); border: 0.5px solid var(--border-strong);
+      border-radius: 14px; min-width: 150px; z-index: 50;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+      overflow: hidden; display: none;
+    }
+    .card-dots-menu.open { display: block; }
+    .card-dots-item {
+      padding: 13px 16px; font-size: 15px; font-family: var(--ff-body);
+      color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 10px;
+      transition: background 0.1s;
+    }
+    .card-dots-item:active { background: var(--surface-2); }
+    .card-dots-item.danger { color: #c0392b; }
+    .card-dots-item + .card-dots-item { border-top: 0.5px solid var(--border); }
+
     /* ── Notebook editor screen ── */
     .notebook-screen {
       position: absolute; inset: 0; background: var(--bg);
@@ -830,6 +856,26 @@
       <div class="btn-row">
         <button class="btn-sec" onclick="closeNewNotebookSheet()">Cancel</button>
         <button class="btn-pri" onclick="saveNotebook()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Notebook Sheet -->
+  <div class="sheet" id="edit-notebook-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-inner">
+      <div class="sheet-title">Edit notebook</div>
+      <div class="field">
+        <label>Category</label>
+        <select id="enb-cat-select" style="width:100%;font-size:16px;padding:13px 14px;border:0.5px solid var(--border-strong);border-radius:12px;background:var(--surface-2);color:var(--text-primary);font-family:var(--ff-body);appearance:none;-webkit-appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888780' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;"></select>
+      </div>
+      <div class="field">
+        <label>Notebook Name</label>
+        <input type="text" id="enb-name" placeholder="e.g. Ideas &amp; Plans">
+      </div>
+      <div class="btn-row">
+        <button class="btn-sec" onclick="closeEditNotebookSheet()">Cancel</button>
+        <button class="btn-pri" onclick="saveEditNotebook()">Save</button>
       </div>
     </div>
   </div>
@@ -1272,7 +1318,21 @@
           <div class="notebook-card-title">${nb.name}</div>
           <div class="notebook-card-meta">Notebook · ${nb.content ? 'Has notes' : 'Empty'}</div>
         </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        <div class="card-dots-wrap" onclick="event.stopPropagation()">
+          <button class="card-dots-btn" onclick="toggleCardMenu(event,'nbmenu-${nb.id}')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text-secondary)"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
+          <div class="card-dots-menu" id="nbmenu-${nb.id}">
+            <div class="card-dots-item" onclick="openEditNotebookSheet('${nb.id}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Edit
+            </div>
+            <div class="card-dots-item danger" onclick="deleteNotebookById('${nb.id}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Delete
+            </div>
+          </div>
+        </div>
       </div>`).join('');
     const goalsHtml = catGoals.map(g => {
       const done = total(g), pct = Math.min(100, Math.round(done/g.target*100)), comp = done >= g.target;
@@ -1283,7 +1343,21 @@
       return `<div class="goal-card" data-id="${g.id}" onclick="openDetail(${g.id})">
         <div class="card-top">
           <span class="card-exercise">${g.name}</span>
-          <span class="card-badge ${comp?'done':''}">${comp?'Done':pct+'%'}</span>
+          <div class="card-dots-wrap" onclick="event.stopPropagation()">
+            <button class="card-dots-btn" onclick="toggleCardMenu(event,'gmenu-${g.id}')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text-secondary)"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+            </button>
+            <div class="card-dots-menu" id="gmenu-${g.id}">
+              <div class="card-dots-item" onclick="openGoalEditFromCard(${g.id})">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </div>
+              <div class="card-dots-item danger" onclick="deleteGoalById(${g.id})">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                Delete
+              </div>
+            </div>
+          </div>
         </div>
         ${dl ? `<div class="card-deadline ${overdue?'overdue':''}">${dl}</div>` : ''}
         <div class="card-nums">
@@ -1299,8 +1373,69 @@
     el.innerHTML = nbHtml + goalsHtml;
   }
 
+  // ── Card-level dots menu helpers ─────────────────────────────
+  function toggleCardMenu(e, menuId) {
+    e.stopPropagation();
+    const menu = document.getElementById(menuId);
+    const wasOpen = menu.classList.contains('open');
+    document.querySelectorAll('.card-dots-menu.open').forEach(m => m.classList.remove('open'));
+    if (!wasOpen) menu.classList.add('open');
+  }
+
+  // Goal: open edit from card dots menu
+  function openGoalEditFromCard(goalId) {
+    document.querySelectorAll('.card-dots-menu.open').forEach(m => m.classList.remove('open'));
+    openDetail(goalId);
+    setTimeout(() => openEditSheet(), 120);
+  }
+
+  // Goal: delete directly from card
+  function deleteGoalById(goalId) {
+    document.querySelectorAll('.card-dots-menu.open').forEach(m => m.classList.remove('open'));
+    if (!confirm('Delete this goal and all its logs?')) return;
+    goals = goals.filter(g => g.id !== goalId);
+    save();
+    if (activeCatId) renderCatGoals(activeCatId);
+    else renderGoals();
+  }
+
+  // Notebook: edit sheet
+  let editNotebookId = null;
+  function openEditNotebookSheet(nbId) {
+    document.querySelectorAll('.card-dots-menu.open').forEach(m => m.classList.remove('open'));
+    editNotebookId = nbId;
+    const nb = notebooks.find(n => n.id === nbId); if (!nb) return;
+    const sel = document.getElementById('enb-cat-select');
+    sel.innerHTML = categories.map(c => `<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('');
+    sel.value = nb.catId || '';
+    document.getElementById('enb-name').value = nb.name;
+    document.getElementById('sheet-bg').classList.add('show');
+    document.getElementById('edit-notebook-sheet').classList.add('show');
+  }
+  function closeEditNotebookSheet() {
+    document.getElementById('edit-notebook-sheet').classList.remove('show');
+    document.getElementById('sheet-bg').classList.remove('show');
+  }
+  function saveEditNotebook() {
+    const name = document.getElementById('enb-name').value.trim();
+    if (!name) { document.getElementById('enb-name').focus(); return; }
+    const nb = notebooks.find(n => n.id === editNotebookId); if (!nb) return;
+    nb.name = name;
+    nb.catId = document.getElementById('enb-cat-select').value || nb.catId;
+    nb.updatedAt = Date.now();
+    saveNotebooks();
+    closeEditNotebookSheet();
+    if (activeCatId) renderCatGoals(activeCatId);
+  }
+  function deleteNotebookById(nbId) {
+    document.querySelectorAll('.card-dots-menu.open').forEach(m => m.classList.remove('open'));
+    if (!confirm('Delete this notebook?')) return;
+    notebooks = notebooks.filter(n => n.id !== nbId);
+    saveNotebooks();
+    if (activeCatId) renderCatGoals(activeCatId);
+  }
+
   let editCatId = null;
-  let selectedEditEmoji = '💪';
 
   function openEditCatSheet(catId) {
     editCatId = catId;
@@ -1517,6 +1652,10 @@
     const cmenu = document.getElementById('cat-sort-menu');
     const cbtn = document.getElementById('cat-sort-btn');
     if (cmenu && cbtn && !cbtn.contains(e.target)) cmenu.classList.remove('open');
+    // Close any open card-level dots menus
+    document.querySelectorAll('.card-dots-menu.open').forEach(m => {
+      if (!m.parentElement.contains(e.target)) m.classList.remove('open');
+    });
   });
 
   function toggleHeaderMenu(e) {
@@ -1751,6 +1890,7 @@
     if (document.getElementById('notebook-screen').classList.contains('show')) { closeNotebook(); return; }
     if (document.getElementById('picker-sheet').classList.contains('show')) { closePickerSheet(); return; }
     if (document.getElementById('new-notebook-sheet').classList.contains('show')) { closeNewNotebookSheet(); return; }
+    if (document.getElementById('edit-notebook-sheet').classList.contains('show')) { closeEditNotebookSheet(); return; }
     if (document.getElementById('history-sheet').classList.contains('show')) { closeHistorySheet(); return; }
     if (document.getElementById('edit-sheet').classList.contains('show')) { closeEditSheet(); return; }
     if (document.getElementById('new-cat-sheet').classList.contains('show')) { closeNewCatSheet(); return; }
