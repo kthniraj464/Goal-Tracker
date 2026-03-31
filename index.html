@@ -2062,17 +2062,22 @@
       return;
     }
     // Already at home — double back to exit
+    // ALWAYS push state back first to prevent browser from exiting immediately
+    history.pushState({ page: 'home' }, '');
+
     if (window._backPressedOnce) {
-      // Second press — let the browser exit naturally (do not pushState)
+      // Second press within 2s — navigate away to exit PWA
+      window._backPressedOnce = false;
+      history.go(-(history.length - 1));
       return;
     }
     window._backPressedOnce = true;
-    // Show a toast-style hint
+    // Show toast
     let toast = document.getElementById('back-toast');
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'back-toast';
-      toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-family:var(--ff-body);z-index:9999;pointer-events:none;';
+      toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-family:var(--ff-body);z-index:9999;pointer-events:none;transition:opacity 0.3s;';
       document.body.appendChild(toast);
     }
     toast.textContent = 'Press back again to exit';
@@ -2081,8 +2086,6 @@
       window._backPressedOnce = false;
       toast.style.opacity = '0';
     }, 2000);
-    // Push state back so second press triggers popstate again
-    history.pushState({ page: 'home' }, '');
   });
 
   renderGoals();
